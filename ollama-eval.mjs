@@ -1,37 +1,25 @@
 #!/usr/bin/env node
 /**
- * gemini-eval.mjs — Gemini-powered Job Offer Evaluator for career-ops
+ * ollama-eval.mjs — Ollama-powered Job Offer Evaluator for career-ops
  *
- * A free-tier alternative to the Claude-based pipeline.
+ * A local, free alternative using Ollama + Mistral.
  * Reads evaluation logic from modes/oferta.md + modes/_shared.md,
  * reads the user's resume from cv.md, and evaluates a Job Description
  * passed as a command-line argument.
  *
  * Usage:
- *   node gemini-eval.mjs "Paste full JD text here"
- *   node gemini-eval.mjs --file ./jds/my-job.txt
+ *   node ollama-eval.mjs "Paste full JD text here"
+ *   node ollama-eval.mjs --file ./jds/my-job.txt
+ *   node ollama-eval.mjs --model llama2 "Your JD here"
  *
  * Requires:
- *   GEMINI_API_KEY in .env (or environment variable)
- *
- * Free-tier model: gemini-2.5-flash-lite (generous quota, no billing required)
+ *   Ollama running locally (ollama serve)
+ *   Model pulled: ollama pull mistral (or your preferred model)
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-
-// ---------------------------------------------------------------------------
-// Bootstrap: load .env before anything else
-// ---------------------------------------------------------------------------
-try {
-  const { config } = await import('dotenv');
-  config();
-} catch {
-  // dotenv is optional — fall back to process.env if not installed
-}
-
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -39,10 +27,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const ROOT = dirname(fileURLToPath(import.meta.url));
 
 const PATHS = {
-  // Primary evaluation logic lives in these two mode files
   shared:   join(ROOT, 'modes', '_shared.md'),
   oferta:   join(ROOT, 'modes', 'oferta.md'),
-  // Canonical skill path referenced in Issue #344
   evaluate: join(ROOT, '.claude', 'skills', 'career-ops', 'SKILL.md'),
   cv:       join(ROOT, 'cv.md'),
   reports:  join(ROOT, 'reports'),
@@ -57,37 +43,39 @@ const args = process.argv.slice(2);
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log(`
 ╔══════════════════════════════════════════════════════════════════╗
-║           career-ops — Gemini Evaluator (free-tier)             ║
+║        career-ops — Ollama Evaluator (Local/Free)               ║
 ╚══════════════════════════════════════════════════════════════════╝
 
-  Evaluate a job offer using Google Gemini instead of Claude.
+  Evaluate a job offer using Ollama (runs locally, zero API costs).
 
   USAGE
-    node gemini-eval.mjs "<JD text>"
-    node gemini-eval.mjs --file ./jds/my-job.txt
-    node gemini-eval.mjs --model gemini-2.5-flash-lite "<JD text>"
+    node ollama-eval.mjs "<JD text>"
+    node ollama-eval.mjs --file ./jds/my-job.txt
+    node ollama-eval.mjs --model mistral "<JD text>"
 
   OPTIONS
     --file <path>    Read JD from a file instead of inline text
-    --model <name>   Gemini model to use (default: gemini-2.5-flash-lite)
+    --model <name>   Ollama model to use (default: mistral)
     --no-save        Do not save report to reports/ directory
     --help           Show this help
 
   SETUP
-    1. Get a free API key at https://aistudio.google.com/apikey
-    2. Add GEMINI_API_KEY=<your-key> to .env
-    3. Run: npm install   (installs @google/generative-ai + dotenv)
+    1. Install Ollama: https://ollama.ai
+    2. Pull a model: ollama pull mistral
+    3. Start Ollama: ollama serve
+    4. Run: node ollama-eval.mjs "Your JD here"
 
   EXAMPLES
-    node gemini-eval.mjs "We are looking for a Senior AI Engineer..."
-    node gemini-eval.mjs --file ./jds/openai-swe.txt
+    node ollama-eval.mjs "We are looking for a Senior AI Engineer..."
+    node ollama-eval.mjs --file ./jds/openai-swe.txt
+    node ollama-eval.mjs --model llama2 "Your JD here"
 `);
   process.exit(0);
 }
 
 // Parse flags
 let jdText = '';
-let modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+let modelName = process.env.OLLAMA_MODEL || 'mistral';
 let saveReport = true;
 
 for (let i = 0; i < args.length; i++) {
@@ -113,21 +101,6 @@ if (!jdText) {
 }
 
 // ---------------------------------------------------------------------------
-// Validate environment
-// ---------------------------------------------------------------------------
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.error(`
-❌  GEMINI_API_KEY not found.
-
-   1. Get a free key at https://aistudio.google.com/apikey
-   2. Add it to .env:   GEMINI_API_KEY=your_key_here
-   3. Or export it:     export GEMINI_API_KEY=your_key_here
-`);
-  process.exit(1);
-}
-
-// ---------------------------------------------------------------------------
 // File helpers
 // ---------------------------------------------------------------------------
 function readFile(path, label) {
@@ -146,16 +119,6 @@ function nextReportNumber() {
     .filter(n => !isNaN(n));
   if (files.length === 0) return '001';
   return String(Math.max(...files) + 1).padStart(3, '0');
-}
-
-// Lazy import — only used when saving
-let readdirSync;
-try {
-  ({ readdirSync } = await import('fs'));
-} catch { /* already imported above via named exports */ }
-// Use named import fallback
-if (!readdirSync) {
-  readdirSync = (await import('fs')).readdirSync;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,7 +160,9 @@ IMPORTANT OPERATING RULES FOR THIS CLI SESSION
    - For Block D (Comp research): provide salary estimates based on your training data, clearly noted as estimates.
    - For Block G (Legitimacy): analyze the JD text only; skip URL/page freshness checks.
    - Post-evaluation file saving is handled by the script, not by you.
-2. Generate Blocks A through G in full, in English, unless the JD is in another language.
+2. IMPORTANT: Generate Blocks A through G in full, ALWAYS in English. Do not use any other language.
+   - Even if the JD is in another language, respond in English.
+   - Translate as needed, but output must be in English.
 3. At the very end, output a machine-readable summary block in this exact format:
 
 ---SCORE_SUMMARY---
@@ -210,110 +175,80 @@ LEGITIMACY: <High Confidence | Proceed with Caution | Suspicious>
 `;
 
 // ---------------------------------------------------------------------------
-// Call Gemini API
+// Call Ollama API
 // ---------------------------------------------------------------------------
-console.log(`🤖  Calling Gemini (${modelName})... this may take 30-60 seconds.\n`);
+console.log(`🤖  Calling Ollama (${modelName})... this may take a minute.\n`);
 
-const genAI = new GoogleGenerativeAI(apiKey);
-const model = genAI.getGenerativeModel({
-  model: modelName,
-  generationConfig: {
-    temperature: 0.4,      // deterministic enough for structured evaluation
-    maxOutputTokens: 8192, // full 7-block evaluation
-  },
-});
+async function callOllama(model, systemMsg, userMsg) {
+  try {
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: model,
+        prompt: `${systemMsg}\n\nJOB DESCRIPTION TO EVALUATE:\n\n${userMsg}`,
+        stream: false,
+        temperature: 0.4,
+      }),
+    });
 
-let evaluationText;
-try {
-  const result = await model.generateContent([
-    { text: systemPrompt },
-    { text: `\n\nJOB DESCRIPTION TO EVALUATE:\n\n${jdText}` },
-  ]);
-  evaluationText = result.response.text();
-} catch (err) {
-  console.error('❌  Gemini API error:', err.message);
-  if (err.message?.includes('API_KEY')) {
-    console.error('    Check your GEMINI_API_KEY in .env');
-  } else if (err.message?.includes('quota') || err.message?.includes('rate')) {
-    console.error('    You may have hit the free-tier rate limit. Wait 60s and retry.');
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Ollama error (${response.status}): ${error}`);
+    }
+
+    const data = await response.json();
+    return data.response;
+  } catch (err) {
+    console.error('❌  Ollama API error:', err.message);
+    if (err.message.includes('ECONNREFUSED') || err.message.includes('localhost')) {
+      console.error('    Make sure Ollama is running: ollama serve');
+    }
+    process.exit(1);
   }
-  process.exit(1);
 }
+
+const evaluationText = await callOllama(modelName, systemPrompt, jdText);
 
 // ---------------------------------------------------------------------------
 // Display evaluation
 // ---------------------------------------------------------------------------
 console.log('\n' + '═'.repeat(66));
-console.log('  CAREER-OPS EVALUATION — powered by Google Gemini');
+console.log('  CAREER-OPS EVALUATION — powered by Ollama (' + modelName + ')');
 console.log('═'.repeat(66) + '\n');
 console.log(evaluationText);
+console.log('\n' + '═'.repeat(66));
 
 // ---------------------------------------------------------------------------
-// Parse score summary
-// ---------------------------------------------------------------------------
-const summaryMatch = evaluationText.match(
-  /---SCORE_SUMMARY---\s*([\s\S]*?)---END_SUMMARY---/
-);
-
-let company    = 'unknown';
-let role       = 'unknown';
-let score      = '?';
-let archetype  = 'unknown';
-let legitimacy = 'unknown';
-
-if (summaryMatch) {
-  const block = summaryMatch[1];
-  const extract = (key) => {
-    const m = block.match(new RegExp(`${key}:\\s*(.+)`));
-    return m ? m[1].trim() : 'unknown';
-  };
-  company    = extract('COMPANY');
-  role       = extract('ROLE');
-  score      = extract('SCORE');
-  archetype  = extract('ARCHETYPE');
-  legitimacy = extract('LEGITIMACY');
-}
-
-// ---------------------------------------------------------------------------
-// Save report
+// Save report (optional)
 // ---------------------------------------------------------------------------
 if (saveReport) {
   try {
+    const reportNum = nextReportNumber();
+    const timestamp = new Date().toISOString().split('T')[0];
+    const fileName = `${reportNum}-evaluation-${timestamp}.md`;
+    const reportPath = join(PATHS.reports, fileName);
+
     if (!existsSync(PATHS.reports)) {
       mkdirSync(PATHS.reports, { recursive: true });
     }
 
-    const num         = nextReportNumber();
-    const today       = new Date().toISOString().split('T')[0];
-    const companySlug = company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const filename    = `${num}-${companySlug}-${today}.md`;
-    const reportPath  = join(PATHS.reports, filename);
+    const reportContent = `# Career-Ops Evaluation Report
+Generated: ${new Date().toISOString()}
+Model: Ollama (${modelName})
 
-    const reportContent = `# Evaluation: ${company} — ${role}
+## Job Description Input
+\`\`\`
+${jdText}
+\`\`\`
 
-**Date:** ${today}
-**Archetype:** ${archetype}
-**Score:** ${score}/5
-**Legitimacy:** ${legitimacy}
-**PDF:** pending
-**Tool:** Gemini (${modelName})
-
----
-
-${evaluationText.replace(/---SCORE_SUMMARY---[\s\S]*?---END_SUMMARY---/, '').trim()}
+## Evaluation Results
+${evaluationText}
 `;
 
     writeFileSync(reportPath, reportContent, 'utf-8');
-    console.log(`\n✅  Report saved: reports/${filename}`);
-
-    // Append tracker entry reminder
-    console.log(`\n📊  Tracker entry (add to data/applications.md):`);
-    console.log(`    | ${num} | ${today} | ${company} | ${role} | ${score} | Evaluada | ❌ | [${num}](reports/${filename}) |`);
+    console.log(`✅  Report saved to: ${reportPath}`);
   } catch (err) {
     console.warn(`⚠️   Could not save report: ${err.message}`);
   }
 }
-
-console.log('\n' + '─'.repeat(66));
-console.log(`  Score: ${score}/5  |  Archetype: ${archetype}  |  Legitimacy: ${legitimacy}`);
-console.log('─'.repeat(66) + '\n');
