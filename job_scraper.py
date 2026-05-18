@@ -1608,6 +1608,15 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
         board_count = len(sources) + len(companies)
         per_source  = max(3, num_results // max(board_count, 1))
 
+        # careers_gov scrapers search the whole agency (not keyword-filtered),
+        # so give them a higher budget so deeply-listed jobs aren't cut off.
+        # Other scrapers keep the per_source budget to avoid slowdowns.
+        careers_gov_companies = {
+            c for c in companies
+            if COMPANY_CONFIG.get(c, {}).get("type") == "careers_gov"
+        }
+        careers_gov_per_source = max(30, num_results)
+
         if "MyCareersFuture" in sources:
             tasks.append(scrape_mycareersfuture(keywords, per_source,
                                                  salary_min=salary_min,
@@ -1627,7 +1636,9 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
             tasks.append(scrape_techinasia(keywords, per_source))
 
         for company in companies:
-            tasks.append(_scrape_company(company, keywords, per_source,
+            # Give careers_gov companies a bigger budget — they browse all agency jobs
+            budget = careers_gov_per_source if company in careers_gov_companies else per_source
+            tasks.append(_scrape_company(company, keywords, budget,
                                          salary_min=salary_min,
                                          salary_max=salary_max,
                                          min_years=min_years))
