@@ -44,11 +44,17 @@ def _get_user_salary_settings():
             "target_max": 250000,
         }
 
-# Initialize Claude client
-claude_client = Anthropic()
-
-# Initialize Gemini client (lazy — only used if GEMINI_API_KEY is set)
+# Both clients are lazy — initialised on first use so secrets injected by app.py are available
+_claude_client = None
 _gemini_client = None
+
+def _get_claude_client():
+    global _claude_client
+    if _claude_client is None:
+        key = os.getenv("ANTHROPIC_API_KEY", "")
+        if key:
+            _claude_client = Anthropic(api_key=key)
+    return _claude_client
 
 def _get_gemini_client():
     global _gemini_client
@@ -116,7 +122,7 @@ Format as JSON only, no markdown:
 ]
 """
 
-        message = claude_client.messages.create(
+        message = _get_claude_client().messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}]
@@ -190,7 +196,7 @@ def ollama_evaluate_job(job_description: str, model: str = OLLAMA_MODEL) -> dict
         if check_claude_api():
             try:
                 role_title = job_description[:200]  # first 200 chars usually contain the title
-                salary_msg = claude_client.messages.create(
+                salary_msg = _get_claude_client().messages.create(
                     model="claude-haiku-4-5-20251001",
                     max_tokens=400,
                     messages=[{"role": "user", "content":
@@ -429,7 +435,7 @@ def claude_evaluate_job(job_description: str, model: str = "claude-haiku-4-5-202
         salary_context = ""
         if "haiku" in model:
             try:
-                salary_msg = claude_client.messages.create(
+                salary_msg = _get_claude_client().messages.create(
                     model="claude-haiku-4-5-20251001",
                     max_tokens=300,
                     messages=[{"role": "user", "content":
@@ -449,7 +455,7 @@ def claude_evaluate_job(job_description: str, model: str = "claude-haiku-4-5-202
 
         prompt = _build_eval_prompt(job_description, context, comp_note, salary_settings)
 
-        message = claude_client.messages.create(
+        message = _get_claude_client().messages.create(
             model=model,
             max_tokens=8192,
             messages=[{"role": "user", "content": prompt}]
@@ -744,7 +750,7 @@ def claude_quick_screen(job_title: str, description: str,
         context = get_career_context()
         prompt = _build_quick_screen_prompt(job_title, description, context["cv"])
 
-        message = claude_client.messages.create(
+        message = _get_claude_client().messages.create(
             model=model,
             max_tokens=200,
             messages=[{"role": "user", "content": prompt}]
