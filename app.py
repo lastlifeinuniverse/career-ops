@@ -38,24 +38,38 @@ from profile_loader import (
 # ============================================================================
 
 def _check_password() -> bool:
-    """Return True if user is authenticated."""
-    try:
-        app_password = st.secrets.get("app_password", "")
-    except Exception:
-        app_password = ""
-
-    if not app_password:
-        return True  # no password configured — open access (local dev)
-
+    """
+    Password gate with per-profile mapping.
+    Secrets format:
+        PASSWORD_ZY = "zy-password"
+        PASSWORD_KAI_HIONG = "kh-password"
+    The entered password determines which profile is loaded automatically.
+    Falls through (no gate) if no PASSWORD_* secrets are configured (local dev).
+    """
     if st.session_state.get("authenticated"):
         return True
 
+    # Build {password: profile_name} map from secrets
+    profile_map = {}
+    try:
+        for key in st.secrets:
+            if key.upper().startswith("PASSWORD_"):
+                profile_name = key[len("PASSWORD_"):].lower()
+                profile_map[st.secrets[key]] = profile_name
+    except Exception:
+        pass
+
+    if not profile_map:
+        return True  # no passwords configured — open access (local dev)
+
     st.title("🎯 Career-Ops")
     st.caption("Job search intelligence for Singapore professionals")
-    pwd = st.text_input("Password", type="password", placeholder="Enter access password")
+    pwd = st.text_input("Password", type="password", placeholder="Enter your access password")
     if st.button("Login", type="primary"):
-        if pwd == app_password:
+        if pwd in profile_map:
             st.session_state.authenticated = True
+            st.session_state.profile_name = profile_map[pwd]
+            st.session_state.profile = load_profile(profile_map[pwd])
             st.rerun()
         else:
             st.error("Incorrect password.")
@@ -338,27 +352,9 @@ st.markdown("""
 # ============================================================================
 st.sidebar.title("🎯 Career-Ops")
 
-# ── Profile selector (hidden when env var locks the profile) ──────────────────
-_env_locked = bool(get_env_profile() != "default" or
-                   (hasattr(st, "secrets") and st.secrets.get("CAREER_OPS_PROFILE")))
-if not _env_locked:
-    _profile_options = list(AVAILABLE_PROFILES.keys())
-    _profile_labels  = [
-        f"{v['emoji']} {v['display']}" for v in AVAILABLE_PROFILES.values()
-    ]
-    _cur_idx = _profile_options.index(st.session_state.get("profile_name", "default"))
-    _selected_label = st.sidebar.selectbox(
-        "Profile", _profile_labels, index=_cur_idx, key="profile_selector"
-    )
-    _selected_name = _profile_options[_profile_labels.index(_selected_label)]
-    if _selected_name != st.session_state.get("profile_name"):
-        st.session_state.profile_name = _selected_name
-        st.session_state.profile = load_profile(_selected_name)
-        st.session_state.pop("authenticated", None)  # keep auth but reload DB
-        st.rerun()
-else:
-    _p = AVAILABLE_PROFILES.get(st.session_state.get("profile_name", "default"), {})
-    st.sidebar.caption(f"{_p.get('emoji','')} {_p.get('display','')}")
+# Profile is locked to whoever logged in — just show their name
+_p = AVAILABLE_PROFILES.get(st.session_state.get("profile_name", "default"), {})
+st.sidebar.caption(f"{_p.get('emoji','')} {_p.get('display','')}")
 
 st.sidebar.divider()
 
