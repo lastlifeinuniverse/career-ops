@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import streamlit as st
@@ -150,6 +151,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Inject Streamlit Cloud secrets into env vars so api_integration picks them up
+try:
+    for _key in ("GEMINI_API_KEY", "ANTHROPIC_API_KEY"):
+        if _key in st.secrets and not os.environ.get(_key):
+            os.environ[_key] = st.secrets[_key]
+except Exception:
+    pass
 
 # Auth + profile — must run before any other st.* calls that render content
 _check_password()
