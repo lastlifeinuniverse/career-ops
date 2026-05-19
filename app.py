@@ -366,7 +366,7 @@ st.sidebar.divider()
 _api_set_profile(st.session_state.get("profile", {}))
 
 ollama_ok = check_ollama_health()
-claude_ok = check_claude_api()
+claude_ok = False  # disabled on Streamlit Cloud — Gemini covers all eval needs
 gemini_ok = check_gemini_api()
 
 # Model status — green dot = ready, grey = unavailable, no alarming red ❌ for Ollama
@@ -374,7 +374,7 @@ def _dot(ok):
     return "🟢" if ok else "🔘"
 
 st.sidebar.markdown(
-    f"{_dot(gemini_ok)} Gemini &nbsp; {_dot(claude_ok)} Claude &nbsp; "
+    f"{_dot(gemini_ok)} Gemini &nbsp; "
     f"{'🟢' if ollama_ok else '⚫'} Ollama *(local · optional)*",
     unsafe_allow_html=True,
 )
