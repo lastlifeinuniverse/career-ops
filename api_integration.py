@@ -48,18 +48,35 @@ def _get_user_salary_settings():
 _claude_client = None
 _gemini_client = None
 
+
+def _get_secret(key: str) -> str:
+    """Read a secret from env var first, then Streamlit secrets as fallback."""
+    val = os.getenv(key, "")
+    if val:
+        return val
+    try:
+        import streamlit as st
+        val = st.secrets.get(key, "")
+        if val:
+            os.environ[key] = val  # cache in env so subsequent calls are fast
+    except Exception:
+        pass
+    return val or ""
+
+
 def _get_claude_client():
     global _claude_client
     if _claude_client is None:
-        key = os.getenv("ANTHROPIC_API_KEY", "")
+        key = _get_secret("ANTHROPIC_API_KEY")
         if key:
             _claude_client = Anthropic(api_key=key)
     return _claude_client
 
+
 def _get_gemini_client():
     global _gemini_client
     if _gemini_client is None:
-        key = os.getenv("GEMINI_API_KEY", "")
+        key = _get_secret("GEMINI_API_KEY")
         if key:
             _gemini_client = _genai.Client(api_key=key)
     return _gemini_client
@@ -397,12 +414,10 @@ def check_ollama_health() -> bool:
         return False
 
 def check_claude_api() -> bool:
-    """Check if Claude API key is set."""
-    return bool(os.getenv("ANTHROPIC_API_KEY"))
+    return bool(_get_secret("ANTHROPIC_API_KEY"))
 
 def check_gemini_api() -> bool:
-    """Check if Gemini API key is set."""
-    return bool(os.getenv("GEMINI_API_KEY"))
+    return bool(_get_secret("GEMINI_API_KEY"))
 
 
 def claude_evaluate_job(job_description: str, model: str = "claude-haiku-4-5-20251001") -> dict:
