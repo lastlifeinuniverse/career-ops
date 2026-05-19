@@ -1562,6 +1562,23 @@ elif page == "⚖️ Compare":
 elif page == "⚙️ Settings":
     st.header("⚙️ Settings")
 
+    # ── Temporary secrets debug (remove once keys confirmed working) ──────────
+    with st.expander("🔑 Debug: Secrets Check", expanded=True):
+        try:
+            all_keys = list(st.secrets.keys())
+            st.write("Keys found in st.secrets:", all_keys)
+            for k in ("GEMINI_API_KEY", "ANTHROPIC_API_KEY", "app_password", "CAREER_OPS_PROFILE"):
+                if k in st.secrets:
+                    val = str(st.secrets[k])
+                    masked = val[:6] + "..." if len(val) > 6 else "(set but short)"
+                    st.success(f"✅ `{k}` found — `{masked}`")
+                else:
+                    st.error(f"❌ `{k}` NOT found in secrets")
+        except Exception as e:
+            st.error(f"Could not read st.secrets: {e}")
+        st.caption("Remove this expander once keys are confirmed.")
+    # ── End debug ─────────────────────────────────────────────────────────────
+
     tab_salary, tab_search, tab_ai, tab_health, tab_data = st.tabs([
         "💰 Salary",
         "🔍 Search Defaults",
