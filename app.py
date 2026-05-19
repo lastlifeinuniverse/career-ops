@@ -1562,7 +1562,7 @@ elif page == "⚖️ Compare":
 elif page == "⚙️ Settings":
     st.header("⚙️ Settings")
 
-tab_salary, tab_search, tab_ai, tab_health, tab_data = st.tabs([
+    tab_salary, tab_search, tab_ai, tab_health, tab_data = st.tabs([
         "💰 Salary",
         "🔍 Search Defaults",
         "🤖 AI Preferences",
