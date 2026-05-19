@@ -1,0 +1,129 @@
+name: kai_hiong
+display_name: "Kai Hiong Teo"
+emoji: "🏦"
+
+candidate:
+  full_name: "Kai Hiong Teo"
+  age: ~50
+  location: "Singapore"
+  seniority: "Executive Director / VP"
+  background: >
+    Senior Risk Leader with 20+ years in global financial institutions (Wells Fargo, DBS,
+    Barclays, JPMorganChase). Specialises in operational and technology risk, regulatory
+    change, and risk transformation across APAC. Chartered Accountant (ISCA), CRISC, CISM,
+    and AAISM certified.
+  domain_expertise:
+    - "Operational Risk Management"
+    - "Technology & Information Security Risk"
+    - "Regulatory Change Management (MAS, APAC, EMEA)"
+    - "Third-Party / Outsourcing Risk"
+    - "Business Continuity & Operational Resilience"
+    - "Data Risk & Information Management"
+    - "AI Risk Governance"
+  no_experience:
+    - "Wealth management / private banking"
+    - "Front-office trading"
+    - "Software engineering"
+    - "Pure audit (beyond early career)"
+
+compensation:
+  current: 200000        # SGD annual estimate for ED level at Wells Fargo
+  target_min: 220000
+  target_max: 320000
+  currency: "SGD"
+
+# ── Job classifier ────────────────────────────────────────────────────────────
+# These replace the hardcoded _BLOCK_TITLES / _CORE_TARGETS / _ADJACENT in app.py
+classifier:
+  block:
+    - "part time"
+    - "part-time"
+    - "internship"
+    - "intern "
+    - "entry level"
+    - "junior"
+    - "wealth advisor"
+    - "financial advisor"
+    - "financial planner"
+    - "insurance agent"
+    - "relationship manager"
+    - "private banker"
+    - "software engineer"
+    - "data engineer"
+    - "developer"
+    - "programmer"
+  core:
+    - "head of risk"
+    - "chief risk officer"
+    - "cro"
+    - "head of operational risk"
+    - "head of technology risk"
+    - "head of information security"
+    - "ciso"
+    - "vp operational risk"
+    - "vp technology risk"
+    - "director operational risk"
+    - "director technology risk"
+    - "executive director risk"
+    - "risk transformation"
+    - "enterprise risk"
+    - "group risk"
+    - "ai risk"
+    - "technology risk oversight"
+    - "information security risk"
+    - "third-party risk"
+    - "regulatory risk"
+  adjacent:
+    - "risk"
+    - "governance"
+    - "compliance"
+    - "audit"
+    - "resilience"
+    - "cyber"
+    - "information security"
+    - "regulatory"
+    - "fintech risk"
+    - "regtech"
+
+# ── Scan defaults ─────────────────────────────────────────────────────────────
+defaults:
+  keyword: "Risk Manager"
+  salary_min: 15000      # SGD monthly (~180K annual)
+  salary_max: 30000      # SGD monthly (~360K annual)
+  quick_search_terms:
+    - "Risk Manager"
+    - "Operational Risk"
+    - "Technology Risk"
+    - "Information Security"
+    - "Risk Governance"
+    - "Head of Risk"
+
+# ── Company groups shown in UI (keys must match COMPANY_GROUPS in job_scraper.py)
+# ─────────────────────────────────────────────────────────────────────────────
+default_company_groups:
+  - "🏦 Banks"
+  - "🏛️ Gov / Statutory"
+
+# ── AI evaluation persona ────────────────────────────────────────────────────
+eval_persona: |
+  CANDIDATE FACTS:
+  - Name: Kai Hiong Teo, ~50 years old, Singapore Citizen
+  - Career span: 20+ years in global financial institutions
+  - Background: RISK MANAGEMENT only — Operational Risk, Technology Risk, Information Security Risk
+  - Domain expertise: MAS regulatory compliance, RCSA, third-party/outsourcing risk, business continuity,
+    AI risk governance, data risk, technology compliance across APAC and EMEA
+  - Current role: Executive Director, Senior Lead – Technology & Information Security Risk Oversight,
+    Wells Fargo N.A. (Jul 2022–present)
+  - Prior: DBS (Group Ops Risk Team Lead, VP T&O Risk), UOB (VP InfoSec), RBS, Barclays (VP APAC OpRisk),
+    JPMorganChase (Senior Associate OpRisk), UBS, PwC, Arthur Andersen / Ernst & Young
+  - Certifications: CRISC (2025), CISM (2025), AAISM (2026), Chartered Accountant of Singapore,
+    Oxford Fintech Programme
+  - Current annual compensation: ~SGD 200,000 (estimated)
+  - Target range: SGD 220,000–320,000 total
+  - NO experience in: front-office, wealth management, trading, software engineering
+
+quick_screen_persona: |
+  Senior Risk Executive, ~50 years old, Singapore. Executive Director at Wells Fargo.
+  20+ years in Operational Risk, Technology Risk, and Information Security at Tier-1 global banks.
+  CRISC, CISM, AAISM certified. Looking for Head of Risk / CRO / CISO-adjacent roles in Singapore.
+  Target: SGD 220K–320K. Must be VP/ED/Director level, not mid-management.

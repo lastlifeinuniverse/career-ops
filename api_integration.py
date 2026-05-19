@@ -9,6 +9,14 @@ from google import genai as _genai
 
 load_dotenv(override=True)
 
+# ── Active profile (set by app.py at startup) ────────────────────────────────
+_ACTIVE_PROFILE: dict = {}
+
+def set_active_profile(profile: dict):
+    """Called by app.py after profile bootstrap to inject persona into evals."""
+    global _ACTIVE_PROFILE
+    _ACTIVE_PROFILE = profile or {}
+
 # Database helper for user settings
 def _get_user_salary_settings():
     """Fetch user's salary expectations from database."""
@@ -524,15 +532,18 @@ def _build_eval_prompt(job_description: str, context: dict, comp_note: str, sala
     if salary_settings is None:
         salary_settings = _get_user_salary_settings()
 
-    return f"""You are a career evaluation assistant. Evaluate the job description below against this candidate's CV.
-Respond entirely in English.
-
-CANDIDATE CV:
----
-{context['cv']}
----
-
-CANDIDATE FACTS:
+    # Use active profile persona if available, otherwise fall back to Yingkai's hardcoded facts
+    profile_persona = _ACTIVE_PROFILE.get("eval_persona", "") if _ACTIVE_PROFILE else ""
+    if profile_persona:
+        profile_comp = _ACTIVE_PROFILE.get("compensation", {})
+        salary_settings = {
+            "current":    profile_comp.get("current",    salary_settings["current"]),
+            "target_min": profile_comp.get("target_min", salary_settings["target_min"]),
+            "target_max": profile_comp.get("target_max", salary_settings["target_max"]),
+        }
+        candidate_block = profile_persona
+    else:
+        candidate_block = f"""CANDIDATE FACTS:
 - Name: Chen Yingkai, 43 years old, Singapore
 - Career span: ~15 years total
 - Background: PRODUCT MANAGEMENT only. NOT an engineer or developer.
@@ -543,7 +554,17 @@ CANDIDATE FACTS:
 - Studying Generative AI at NUS (2025–2026)
 - NO experience in: wealth management, investment products, private banking, trading platforms, insurance, B2B SaaS
 - Current annual compensation: ~SGD {salary_settings['current']:,.0f} (base + bonus)
-- Target range for next role: SGD {salary_settings['target_min']:,.0f}–{salary_settings['target_max']:,.0f} total (minimum SGD {salary_settings['current']:,.0f})
+- Target range for next role: SGD {salary_settings['target_min']:,.0f}–{salary_settings['target_max']:,.0f} total (minimum SGD {salary_settings['current']:,.0f})"""
+
+    return f"""You are a career evaluation assistant. Evaluate the job description below against this candidate's CV.
+Respond entirely in English.
+
+CANDIDATE CV:
+---
+{context['cv']}
+---
+
+{candidate_block}
 {comp_note}
 Write a concise 7-block evaluation (3-5 bullet points per block max). Be accurate and honest — flag gaps clearly, do not be optimistic about poor fits. Keep total response under 1500 words so the SCORE_SUMMARY block always fits.
 
@@ -594,17 +615,24 @@ JOB DESCRIPTION:
 
 def _build_quick_screen_prompt(job_title: str, description: str, cv_text: str) -> str:
     """Build the shared quick-screen prompt used by Claude, Gemini, and Ollama."""
+    qs_persona = (
+        _ACTIVE_PROFILE.get("quick_screen_persona", "")
+        if _ACTIVE_PROFILE else ""
+    )
+    snapshot = qs_persona if qs_persona else (
+        "- 43-year-old, Singapore. VP-level Product Owner in banking with 15 years experience.\n"
+        "- Core expertise: digital banking platforms, mobile/internet banking, payments, fraud prevention,\n"
+        "  digital risk management, AML/KYC, regulatory risk, digital identity.\n"
+        "- Currently studying AI — interested in AI product roles at the intersection of banking and technology.\n"
+        "- Targets: Product Owner, Digital Product Manager, Platform Owner, Payments/Fraud Product,\n"
+        "  AI Product Manager, Head of Product, Digital Transformation Lead.\n"
+        "- Avoids: financial advisory/sales, clinical roles, entry-level, part-time positions.\n"
+        "- Current comp: ~SGD 150K/yr. Minimum acceptable: SGD 150K/yr."
+    )
     return f"""You are a career advisor doing a rapid relevance screen.
 
 CANDIDATE SNAPSHOT:
-- 43-year-old, Singapore. VP-level Product Owner in banking with 15 years experience.
-- Core expertise: digital banking platforms, mobile/internet banking, payments, fraud prevention,
-  digital risk management, AML/KYC, regulatory risk, digital identity.
-- Currently studying AI — interested in AI product roles at the intersection of banking and technology.
-- Targets: Product Owner, Digital Product Manager, Platform Owner, Payments/Fraud Product,
-  AI Product Manager, Head of Product, Digital Transformation Lead.
-- Avoids: financial advisory/sales, clinical roles, entry-level, part-time positions.
-- Current comp: ~SGD 150K/yr. Minimum acceptable: SGD 150K/yr.
+{snapshot}
 
 CV (for additional context):
 {cv_text[:2000]}

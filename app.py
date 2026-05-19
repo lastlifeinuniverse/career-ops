@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 from pathlib import Path
 
-from db_init import init_db, get_connection
+from db_init import init_db, get_connection, set_active_db
 from api_integration import (
     claude_scan_jobs,
     ollama_evaluate_job,
@@ -20,41 +20,97 @@ from api_integration import (
     check_claude_api,
     check_gemini_api,
     verify_job_url,
+    set_active_profile as _api_set_profile,
 )
 from job_scraper import scrape_jobs, COMPANY_GROUPS
+from profile_loader import (
+    AVAILABLE_PROFILES,
+    load_profile,
+    get_env_profile,
+    profile_db_path,
+    get_classifier,
+    get_defaults,
+)
 
 # ============================================================================
-# JOB RELEVANCE CLASSIFIER
+# PASSWORD GATE
 # ============================================================================
 
-_BLOCK_TITLES = [
+def _check_password() -> bool:
+    """Return True if user is authenticated."""
+    try:
+        app_password = st.secrets.get("app_password", "")
+    except Exception:
+        app_password = ""
+
+    if not app_password:
+        return True  # no password configured — open access (local dev)
+
+    if st.session_state.get("authenticated"):
+        return True
+
+    st.title("🎯 Career-Ops")
+    st.caption("Job search intelligence for Singapore professionals")
+    pwd = st.text_input("Password", type="password", placeholder="Enter access password")
+    if st.button("Login", type="primary"):
+        if pwd == app_password:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+    st.stop()
+
+# ============================================================================
+# PROFILE BOOTSTRAP  — runs once per session
+# ============================================================================
+
+def _bootstrap_profile():
+    """Load and cache the active profile in session state."""
+    if "profile_name" not in st.session_state:
+        # Env var wins (useful for dedicated per-person deployments)
+        env = get_env_profile()
+        # If running on Streamlit Cloud, also check secrets
+        try:
+            env = st.secrets.get("CAREER_OPS_PROFILE", env) or env
+        except Exception:
+            pass
+        st.session_state.profile_name = env if env in AVAILABLE_PROFILES else "default"
+
+    if "profile" not in st.session_state:
+        st.session_state.profile = load_profile(st.session_state.profile_name)
+
+    # Re-init DB whenever profile changes so each user has isolated data
+    db_path = profile_db_path(st.session_state.profile_name)
+    init_db(db_path=db_path)
+    set_active_db(db_path)   # all get_connection() calls now point here
+    return db_path
+
+# ============================================================================
+# JOB RELEVANCE CLASSIFIER  (profile-aware)
+# ============================================================================
+
+# Fallback lists used when no profile is loaded (your own profile)
+_DEFAULT_BLOCK = [
     "doctor", "physician", "nurse", "pharmacist", "surgeon", "dentist",
     "optometrist", "therapist", "physiotherapist", "radiographer", "dietitian",
     "audiologist", "medical officer", "clinical",
-    "wealth advisor", "wealth adviser",
-    "wealth manager",
-    "financial advisor", "financial adviser",
-    "financial planner",
+    "wealth advisor", "wealth adviser", "wealth manager",
+    "financial advisor", "financial adviser", "financial planner",
     "insurance agent", "insurance advisor", "bancassurance",
-    "relationship manager",
-    "private banker", "remisier",
-    "part time", "part-time", "internship", "intern ",
-    "[entry level]", "entry level",
+    "relationship manager", "private banker", "remisier",
+    "part time", "part-time", "internship", "intern ", "[entry level]", "entry level",
 ]
-
-_CORE_TARGETS = [
+_DEFAULT_CORE = [
     "product owner", "product manager", "product director",
     "product management lead", "product management head",
-    "digital product",
-    "platform owner", "platform manager",
+    "digital product", "platform owner", "platform manager",
     "payments product", "fraud product", "digital identity",
     "ai product", "head of product", "vp product", "chief product",
     "innovation lead", "innovation manager",
     "digital transformation", "squad lead", "chapter lead",
     "digital banking lead", "digital banking product",
 ]
-
-_ADJACENT = [
+_DEFAULT_ADJACENT = [
     "digital", "agile", "fintech", "transformation",
     "technology lead", "tech lead", "programme manager",
     "delivery manager", "business analyst", "solution owner",
@@ -62,15 +118,25 @@ _ADJACENT = [
 ]
 
 
+def _get_classifier_lists() -> tuple:
+    """Return (block, core, adjacent) lists from active profile or defaults."""
+    profile = st.session_state.get("profile", {})
+    if profile and profile.get("classifier"):
+        c = get_classifier(profile)
+        return c["block"], c["core"], c["adjacent"]
+    return _DEFAULT_BLOCK, _DEFAULT_CORE, _DEFAULT_ADJACENT
+
+
 def classify_job(title: str) -> tuple:
+    block, core, adjacent = _get_classifier_lists()
     t = title.lower()
-    for kw in _BLOCK_TITLES:
+    for kw in block:
         if kw in t:
             return ("block", f"Excluded: matches '{kw}'")
-    for kw in _CORE_TARGETS:
+    for kw in core:
         if kw in t:
             return ("core", f"Core target: '{kw}'")
-    for kw in _ADJACENT:
+    for kw in adjacent:
         if kw in t:
             return ("adjacent", f"Adjacent: '{kw}'")
     return ("low", "Low title relevance")
@@ -85,7 +151,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-init_db()
+# Auth + profile — must run before any other st.* calls that render content
+_check_password()
+_active_db = _bootstrap_profile()
 
 # ============================================================================
 # GLOBAL SETTINGS HELPERS  (module-level, used by all pages)
@@ -261,6 +329,33 @@ st.markdown("""
 # ============================================================================
 st.sidebar.title("🎯 Career-Ops")
 
+# ── Profile selector (hidden when env var locks the profile) ──────────────────
+_env_locked = bool(get_env_profile() != "default" or
+                   (hasattr(st, "secrets") and st.secrets.get("CAREER_OPS_PROFILE")))
+if not _env_locked:
+    _profile_options = list(AVAILABLE_PROFILES.keys())
+    _profile_labels  = [
+        f"{v['emoji']} {v['display']}" for v in AVAILABLE_PROFILES.values()
+    ]
+    _cur_idx = _profile_options.index(st.session_state.get("profile_name", "default"))
+    _selected_label = st.sidebar.selectbox(
+        "Profile", _profile_labels, index=_cur_idx, key="profile_selector"
+    )
+    _selected_name = _profile_options[_profile_labels.index(_selected_label)]
+    if _selected_name != st.session_state.get("profile_name"):
+        st.session_state.profile_name = _selected_name
+        st.session_state.profile = load_profile(_selected_name)
+        st.session_state.pop("authenticated", None)  # keep auth but reload DB
+        st.rerun()
+else:
+    _p = AVAILABLE_PROFILES.get(st.session_state.get("profile_name", "default"), {})
+    st.sidebar.caption(f"{_p.get('emoji','')} {_p.get('display','')}")
+
+st.sidebar.divider()
+
+# Sync active profile persona into api_integration
+_api_set_profile(st.session_state.get("profile", {}))
+
 ollama_ok = check_ollama_health()
 claude_ok = check_claude_api()
 gemini_ok = check_gemini_api()
@@ -357,12 +452,14 @@ if page == "📋 Pipeline":
     with st.expander("🔍 Run New Scan", expanded=_scan_auto_open):
         st.caption("🕷️ Scrape live jobs from public boards and company portals")
 
-        # Load search defaults from settings
-        _def_keyword  = get_setting("default_keyword",  "Product Manager")
-        _def_sal_min  = int(get_setting("default_sal_min", "8000"))
-        _def_sal_max  = int(get_setting("default_sal_max", "20000"))
+        # Load search defaults — profile overrides saved settings
+        from profile_loader import get_defaults as _get_defaults
+        _prof_defaults = _get_defaults(st.session_state.get("profile", {}))
+        _def_keyword  = get_setting("default_keyword",  _prof_defaults["keyword"])
+        _def_sal_min  = int(get_setting("default_sal_min", str(_prof_defaults["salary_min"])))
+        _def_sal_max  = int(get_setting("default_sal_max", str(_prof_defaults["salary_max"])))
 
-        predefined_terms = [
+        predefined_terms = _prof_defaults["quick_terms"] or [
             "AI Product Manager Banking",
             "Digital Banking Platform",
             "AI Product Leadership",

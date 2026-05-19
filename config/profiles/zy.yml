@@ -1,0 +1,121 @@
+name: zy
+display_name: "Sim Zong Yan"
+emoji: "🎨"
+
+candidate:
+  full_name: "Sim Zong Yan"
+  age: ~38
+  location: "Singapore"
+  seniority: "Senior / AVP / Lead"
+  background: >
+    Senior Product Designer with 18+ years creating intuitive digital experiences.
+    Currently AVP Product Designer at OCBC Bank, designing in-app rewards and regional
+    features. Prior background in digital agencies (RM/McCann, National Gallery Singapore).
+    Award-winning designer (W3 Awards, Mob-ex, Singapore Creator Awards).
+  domain_expertise:
+    - "Product Design (UX/UI)"
+    - "Figma & design systems"
+    - "End-to-end experience design (research → prototype → delivery)"
+    - "In-app rewards and loyalty UX"
+    - "Responsive web design"
+    - "Collaboration with PMs, engineers, and compliance"
+    - "CSAT / NPS metric improvement"
+    - "Mentoring junior designers"
+  no_experience:
+    - "Pure graphic design / print"
+    - "Video production"
+    - "Backend / data engineering"
+    - "Wealth management products"
+  portfolio_required_flag: true   # flag JDs that require a portfolio
+
+compensation:
+  current: 96000         # SGD annual estimate for AVP designer at OCBC
+  target_min: 110000
+  target_max: 160000
+  currency: "SGD"
+
+# ── Job classifier ────────────────────────────────────────────────────────────
+classifier:
+  block:
+    - "part time"
+    - "part-time"
+    - "internship"
+    - "intern "
+    - "entry level"
+    - "junior designer"
+    - "graphic designer"       # pure print/brand, not product
+    - "software engineer"
+    - "developer"
+    - "marketing executive"
+    - "sales"
+    - "wealth advisor"
+    - "financial advisor"
+  core:
+    - "product designer"
+    - "ux designer"
+    - "ui designer"
+    - "ux/ui"
+    - "user experience designer"
+    - "user interface designer"
+    - "head of design"
+    - "design lead"
+    - "lead designer"
+    - "principal designer"
+    - "design director"
+    - "senior product designer"
+    - "staff designer"
+    - "design system"
+  adjacent:
+    - "design"
+    - "ux"
+    - "ui"
+    - "experience"
+    - "interaction"
+    - "digital"
+    - "product"
+    - "creative"
+    - "figma"
+    - "prototype"
+
+# ── Scan defaults ─────────────────────────────────────────────────────────────
+defaults:
+  keyword: "Product Designer"
+  salary_min: 7000       # SGD monthly (~84K annual)
+  salary_max: 15000      # SGD monthly (~180K annual)
+  quick_search_terms:
+    - "Product Designer"
+    - "UX Designer"
+    - "UI UX Designer"
+    - "Experience Designer"
+    - "Design Lead"
+    - "Head of Design"
+
+# ── Company groups shown in UI ────────────────────────────────────────────────
+default_company_groups:
+  - "🏦 Banks"
+  - "💳 Fintechs"
+
+# ── AI evaluation persona ────────────────────────────────────────────────────
+eval_persona: |
+  CANDIDATE FACTS:
+  - Name: Sim Zong Yan (ZY), ~38 years old, Singapore
+  - Career span: 18+ years in UX/Product Design
+  - Background: PRODUCT DESIGN only — UX, UI, interaction design, design systems
+  - Domain expertise: in-app rewards UX, regional banking features, responsive web, digital agency delivery,
+    Figma, prototyping, usability testing, CSAT/NPS improvement, mentoring junior designers
+  - Current role: AVP Product Designer, OCBC Bank (Sep 2021–present)
+    → Focused on in-app rewards features and regional initiatives (dashboard, rewards)
+  - Prior: RM/McCann (Senior Art Director), National Gallery Singapore (Senior Digital Designer),
+    TBWA, XM Asia, fFurious, Carbon Interactive (18 years total across agency and in-house)
+  - Awards: W3 Awards 2021 (Gold/Silver), Mob-ex 2016 (Gold/Silver), Singapore Creator Awards 2019
+  - Current annual compensation: ~SGD 96,000 (estimated)
+  - Target range: SGD 110,000–160,000 total
+  - Preference: In-house roles (fintech, tech companies, banks) over pure agency
+  - NO experience in: wealth management products, data engineering, software development
+
+quick_screen_persona: |
+  Senior Product Designer, ~38 years old, Singapore. AVP at OCBC Bank.
+  18+ years in UX/UI design across agency and in-house roles. Award-winning.
+  Looking for Senior/Lead Product Designer or Head of Design roles.
+  Strong preference for in-house (fintech, tech, banking) over agency.
+  Target: SGD 110K–160K. Must be senior scope, not execution-only.

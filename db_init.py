@@ -4,9 +4,20 @@ import json
 
 DB_PATH = Path(__file__).parent / "career_ops.db"
 
-def init_db():
+# Active path — overridden by set_active_db() when a profile is loaded
+_ACTIVE_DB_PATH = DB_PATH
+
+
+def set_active_db(path: Path):
+    """Called by app.py after profile bootstrap so all get_connection() calls use the right DB."""
+    global _ACTIVE_DB_PATH
+    _ACTIVE_DB_PATH = path
+
+
+def init_db(db_path: Path = None):
     """Initialize SQLite database with required tables."""
-    conn = sqlite3.connect(DB_PATH)
+    path = db_path or DB_PATH
+    conn = sqlite3.connect(str(path))
     c = conn.cursor()
 
     # Jobs table (from scans)
@@ -84,8 +95,8 @@ def init_db():
     conn.close()
 
 def get_connection():
-    """Get database connection."""
-    return sqlite3.connect(DB_PATH)
+    """Get database connection for the active profile's DB."""
+    return sqlite3.connect(str(_ACTIVE_DB_PATH))
 
 def dict_from_row(row, columns):
     """Convert sqlite3 row to dict."""
