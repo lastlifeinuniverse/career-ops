@@ -504,9 +504,23 @@ if page == "📋 Pipeline":
         selected_companies = []
         sources = []
 
+        def _select_all_toggle(key_prefix, items, state_key):
+            if st.session_state.get(state_key):
+                for x in items:
+                    st.session_state[f"{key_prefix}{x}"] = True
+            else:
+                for x in items:
+                    st.session_state[f"{key_prefix}{x}"] = False
+
         # ── 1. Direct company portals ─────────────────────────────────────────
-        st.subheader("🔗 Direct Company Portals")
-        st.caption("Live scrape from each company's own careers site — highest signal.")
+        h1, a1 = st.columns([5, 1])
+        with h1:
+            st.subheader("🔗 Direct Company Portals")
+            st.caption("Live scrape from each company's own careers site — highest signal.")
+        with a1:
+            st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
+            st.checkbox("All", key="all_direct",
+                        on_change=_select_all_toggle, args=("co_", _all_direct, "all_direct"))
         cols_d = st.columns(4)
         for i, company in enumerate(_all_direct):
             with cols_d[i % 4]:
@@ -516,12 +530,17 @@ if page == "📋 Pipeline":
         st.divider()
 
         # ── 2. Job boards (non-MCF) ───────────────────────────────────────────
-        st.subheader("📰 Job Boards")
-        st.caption("Indeed and JobStreet tend to yield the most Singapore results.")
+        h2, a2 = st.columns([5, 1])
+        with h2:
+            st.subheader("📰 Job Boards")
+            st.caption("Indeed and JobStreet tend to yield the most Singapore results.")
+        with a2:
+            st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
+            st.checkbox("All", key="all_boards",
+                        on_change=_select_all_toggle, args=("board_", _all_boards_nonmcf, "all_boards"))
         board_cols = st.columns(4)
-        _board_map = {b: board_cols[i % 4] for i, b in enumerate(_all_boards_nonmcf)}
-        for board, col in _board_map.items():
-            with col:
+        for i, board in enumerate(_all_boards_nonmcf):
+            with board_cols[i % 4]:
                 if st.checkbox(board, value=False, key=f"board_{board}"):
                     sources.append(board)
         if any(b in sources for b in ["LinkedIn", "Glassdoor", "Glints"]):
@@ -530,8 +549,14 @@ if page == "📋 Pipeline":
         st.divider()
 
         # ── 3. Careers@Gov ────────────────────────────────────────────────────
-        st.subheader("🏛️ Careers@Gov — Singapore Public Service")
-        st.caption("Direct from the central public service Workday portal.")
+        h3, a3 = st.columns([5, 1])
+        with h3:
+            st.subheader("🏛️ Careers@Gov — Singapore Public Service")
+            st.caption("Direct from the central public service Workday portal.")
+        with a3:
+            st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
+            st.checkbox("All", key="all_cgov",
+                        on_change=_select_all_toggle, args=("co_", _all_careers_gov, "all_cgov"))
         cols_cg = st.columns(4)
         for i, company in enumerate(_all_careers_gov):
             with cols_cg[i % 4]:
@@ -554,7 +579,12 @@ if page == "📋 Pipeline":
             if st.checkbox("MyCareersFuture", value=False, key="board_MyCareersFuture"):
                 sources.append("MyCareersFuture")
 
-            st.markdown("**🏢 Company search via MCF**")
+            hm, am = st.columns([5, 1])
+            with hm:
+                st.markdown("**🏢 Company search via MCF**")
+            with am:
+                st.checkbox("All", key="all_mcf",
+                            on_change=_select_all_toggle, args=("co_", _all_mcf_companies, "all_mcf"))
             cols_mcf = st.columns(4)
             for i, company in enumerate(_all_mcf_companies):
                 with cols_mcf[i % 4]:
