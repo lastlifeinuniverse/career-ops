@@ -18,9 +18,10 @@ from playwright.async_api import async_playwright
 # ── Company groups shown in UI ───────────────────────────────────────────────
 COMPANY_GROUPS = {
     "🏦 Banks":            ["DBS", "OCBC", "UOB", "Standard Chartered", "Citibank", "HSBC"],
-    "💳 Fintechs":         ["Grab", "Sea Group", "Airwallex", "Wise", "Nium", "Revolut", "Thought Machine", "Thunes"],
+    "💳 Fintechs":         ["Grab", "Sea Group", "Airwallex", "Wise", "Nium", "Revolut", "Thought Machine", "Thunes", "Stripe", "PayPal"],
     "🤖 AI Companies":     ["Anthropic"],
-    "🏛️ Gov / Statutory":  ["GovTech", "HTX", "MAS", "IMDA", "CSA", "Singtel"],
+    "🏛️ Gov / Statutory":  ["GovTech", "HTX", "SNDGO", "DSTA", "MAS", "IMDA", "CSA",
+                             "CPF Board", "HDB", "LTA", "MOF", "MOM", "ICA", "MOH Holdings", "Singtel"],
 }
 
 # ── Per-company scraping config ──────────────────────────────────────────────
@@ -41,11 +42,23 @@ COMPANY_CONFIG = {
     "Revolut":            {"type": "mcf",          "mcf_name": "Revolut"},
     "Thought Machine":    {"type": "ashby",        "slug": "thought-machine"},
     "Thunes":             {"type": "greenhouse",   "slug": "thunes"},
+    "Stripe":             {"type": "greenhouse",   "slug": "stripe"},
+    "PayPal":             {"type": "mcf",          "mcf_name": "PayPal"},
     # AI Companies
     "Anthropic":          {"type": "greenhouse",   "slug": "anthropic"},
-    # Gov / Statutory Boards
+    # Gov / Statutory Boards — Careers@Gov Workday portal
     "GovTech":            {"type": "careers_gov", "search_prefix": "GovTech"},
     "HTX":                {"type": "careers_gov", "search_prefix": "HTX"},
+    "SNDGO":              {"type": "careers_gov", "search_prefix": "Smart Nation"},
+    "DSTA":               {"type": "careers_gov", "search_prefix": "Defence Science and Technology Agency"},
+    "CPF Board":          {"type": "careers_gov", "search_prefix": "Central Provident Fund"},
+    "HDB":                {"type": "careers_gov", "search_prefix": "Housing & Development Board"},
+    "LTA":                {"type": "careers_gov", "search_prefix": "Land Transport Authority"},
+    "MOF":                {"type": "careers_gov", "search_prefix": "Ministry of Finance"},
+    "MOM":                {"type": "careers_gov", "search_prefix": "Ministry of Manpower"},
+    "ICA":                {"type": "careers_gov", "search_prefix": "Immigration & Checkpoints Authority"},
+    "MOH Holdings":       {"type": "careers_gov", "search_prefix": "MOH Holdings"},
+    # Gov — MCF fallback
     "MAS":                {"type": "mcf",         "mcf_name": "Monetary Authority of Singapore"},
     "IMDA":               {"type": "mcf",         "mcf_name": "Info-communications Media Development Authority"},
     "CSA":                {"type": "mcf",         "mcf_name": "Cyber Security Agency of Singapore"},

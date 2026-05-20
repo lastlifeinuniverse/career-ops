@@ -489,127 +489,121 @@ if page == "📋 Pipeline":
 
         st.divider()
 
-        # ── Job Board sources ─────────────────────────────────────────────────
-        _all_boards    = ["MyCareersFuture", "Indeed", "JobStreet", "LinkedIn",
-                          "Glassdoor", "Glints", "Tech in Asia"]
-        _all_direct    = ["DBS", "Grab", "Sea Group", "Airwallex",
-                          "Thought Machine", "Thunes", "Anthropic"]
-        _all_mcf       = ["OCBC", "UOB", "Standard Chartered", "Citibank",
-                          "HSBC", "Wise", "Nium", "Revolut", "Singtel"]
-        _all_gov       = ["HTX", "MAS", "IMDA", "CSA"]
-        _all_careers_gov = ["GovTech"]
+        # ── Source lists ──────────────────────────────────────────────────────
+        _all_boards_nonmcf = ["Indeed", "JobStreet", "LinkedIn",
+                               "Glassdoor", "Glints", "Tech in Asia"]
+        _all_direct        = ["DBS", "Grab", "Sea Group", "Airwallex", "Stripe",
+                               "Thought Machine", "Thunes", "Anthropic"]
+        _all_careers_gov   = ["GovTech", "HTX", "SNDGO", "DSTA",
+                               "CPF Board", "HDB", "LTA", "MOF", "MOM",
+                               "ICA", "MOH Holdings"]
+        _all_mcf_companies = ["OCBC", "UOB", "Standard Chartered", "Citibank",
+                               "HSBC", "Wise", "Nium", "Revolut", "PayPal",
+                               "MAS", "IMDA", "CSA", "Singtel"]
 
-        def _toggle_boards():
-            v = st.session_state["select_all_boards"]
-            for b in _all_boards: st.session_state[f"board_{b}"] = v
-
-        def _toggle_companies():
-            v = st.session_state["select_all_companies"]
-            for c in _all_direct + _all_mcf + _all_gov + _all_careers_gov:
-                st.session_state[f"co_{c}"] = v
-
-        hdr_c, all_c = st.columns([5, 1])
-        with hdr_c:
-            st.subheader("📰 Public Job Boards")
-            st.caption("Scraped directly from each site.")
-        with all_c:
-            st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
-            st.checkbox("All", value=False, key="select_all_boards",
-                        on_change=_toggle_boards)
-
-        board_cols1 = st.columns(4)
-        board_cols2 = st.columns(4)
-        _board_cols = {
-            "MyCareersFuture": board_cols1[0], "Indeed":      board_cols1[1],
-            "JobStreet":       board_cols1[2], "LinkedIn":    board_cols1[3],
-            "Glassdoor":       board_cols2[0], "Glints":      board_cols2[1],
-            "Tech in Asia":    board_cols2[2],
-        }
+        selected_companies = []
         sources = []
-        for board, col in _board_cols.items():
+
+        # ── 1. Direct company portals ─────────────────────────────────────────
+        st.subheader("🔗 Direct Company Portals")
+        st.caption("Live scrape from each company's own careers site — highest signal.")
+        cols_d = st.columns(4)
+        for i, company in enumerate(_all_direct):
+            with cols_d[i % 4]:
+                if st.checkbox(company, value=False, key=f"co_{company}"):
+                    selected_companies.append(company)
+
+        st.divider()
+
+        # ── 2. Job boards (non-MCF) ───────────────────────────────────────────
+        st.subheader("📰 Job Boards")
+        st.caption("Indeed and JobStreet tend to yield the most Singapore results.")
+        board_cols = st.columns(4)
+        _board_map = {b: board_cols[i % 4] for i, b in enumerate(_all_boards_nonmcf)}
+        for board, col in _board_map.items():
             with col:
                 if st.checkbox(board, value=False, key=f"board_{board}"):
                     sources.append(board)
-
-        if any(b in sources for b in ["LinkedIn", "Glassdoor", "Glints", "Tech in Asia"]):
+        if any(b in sources for b in ["LinkedIn", "Glassdoor", "Glints"]):
             st.caption("⚠️ LinkedIn & Glassdoor have bot-detection — results may vary")
 
         st.divider()
 
-        hdr_c2, all_c2 = st.columns([5, 1])
-        with hdr_c2:
-            st.subheader("🏢 Company Direct Search")
-            st.caption("Search specific companies' portals. Some via MCF, some via direct APIs.")
-        with all_c2:
-            st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
-            st.checkbox("All", value=False, key="select_all_companies",
-                        on_change=_toggle_companies)
-
-        selected_companies = []
-
-        st.markdown("**🔗 Direct Company Portals**")
-        cols_direct = st.columns(len(_all_direct))
-        for i, company in enumerate(_all_direct):
-            with cols_direct[i]:
-                if st.checkbox(company, value=False, key=f"co_{company}"):
-                    selected_companies.append(company)
-
-        st.markdown("**📋 Via MyCareersFuture**")
-        cols_mcf = st.columns(5)
-        for i, company in enumerate(_all_mcf):
-            with cols_mcf[i % 5]:
-                if st.checkbox(company, value=False, key=f"co_{company}"):
-                    selected_companies.append(company)
-
-        st.markdown("**🏛️ Singapore Gov & Statutory Boards — Careers@Gov**")
-        st.caption("HTX · MAS · IMDA · CSA · GovTech")
-        cols_gov = st.columns(len(_all_gov))
-        for i, company in enumerate(_all_gov):
-            with cols_gov[i]:
-                if f"co_{company}" not in st.session_state:
-                    st.session_state[f"co_{company}"] = (company == "HTX")
-                if st.checkbox(company, value=st.session_state[f"co_{company}"],
-                               key=f"co_{company}"):
-                    selected_companies.append(company)
-
-        cols_cg = st.columns(len(_all_careers_gov))
+        # ── 3. Careers@Gov ────────────────────────────────────────────────────
+        st.subheader("🏛️ Careers@Gov — Singapore Public Service")
+        st.caption("Direct from the central public service Workday portal.")
+        cols_cg = st.columns(4)
         for i, company in enumerate(_all_careers_gov):
-            with cols_cg[i]:
+            with cols_cg[i % 4]:
                 if st.checkbox(company, value=False, key=f"co_{company}"):
                     selected_companies.append(company)
 
         st.divider()
 
-        sal_col, exp_col = st.columns(2)
-        with sal_col:
-            st.markdown("**💰 Monthly Salary Range (SGD)**")
-            sc1, sc2 = st.columns(2)
-            with sc1:
-                salary_min = st.number_input(
-                    "Min", min_value=0, max_value=50000,
-                    value=_def_sal_min, step=500, key="sal_min",
-                )
-            with sc2:
-                salary_max = st.number_input(
-                    "Max", min_value=0, max_value=50000,
-                    value=_def_sal_max, step=500, key="sal_max",
-                )
-            if salary_max:
-                st.caption(f"≈ SGD {salary_min*12:,}–{salary_max*12:,}/yr")
-            else:
-                st.caption(f"≈ SGD {salary_min*12:,}+/yr")
-
-        with exp_col:
-            st.markdown("**🎓 Years of Experience**")
-            exp_option = st.selectbox(
-                "Minimum experience",
-                ["Any", "1+ years", "3+ years", "5+ years", "8+ years", "10+ years"],
-                index=4, label_visibility="collapsed",
+        # ── 4. MyCareersFuture (FCF compliance — lower priority) ─────────────
+        with st.expander(
+            "📋 MyCareersFuture & MCF-listed companies  *(FCF compliance portal — lower priority)*",
+            expanded=False,
+        ):
+            st.caption(
+                "Under Singapore's Fair Consideration Framework, companies must post on MCF "
+                "for 14 days before hiring EP holders. Many listings are compliance postings "
+                "with candidates already identified. Use as a supplementary sweep, not primary source."
             )
-            min_years = {"Any": 0, "1+ years": 1, "3+ years": 3,
-                         "5+ years": 5, "8+ years": 8, "10+ years": 10}[exp_option]
-            if min_years:
-                st.caption(f"MCF filters for {min_years}+ years experience")
+            st.markdown("**📰 MCF General Search**")
+            if st.checkbox("MyCareersFuture", value=False, key="board_MyCareersFuture"):
+                sources.append("MyCareersFuture")
+
+            st.markdown("**🏢 Company search via MCF**")
+            cols_mcf = st.columns(4)
+            for i, company in enumerate(_all_mcf_companies):
+                with cols_mcf[i % 4]:
+                    if st.checkbox(company, value=False, key=f"co_{company}"):
+                        selected_companies.append(company)
+
+            st.divider()
+            st.markdown("**⚙️ MCF Filters** *(only apply to MCF sources above)*")
+            sal_col, exp_col = st.columns(2)
+            with sal_col:
+                st.markdown("**💰 Monthly Salary Range (SGD)**")
+                sc1, sc2 = st.columns(2)
+                with sc1:
+                    salary_min = st.number_input(
+                        "Min", min_value=0, max_value=50000,
+                        value=_def_sal_min, step=500, key="sal_min",
+                    )
+                with sc2:
+                    salary_max = st.number_input(
+                        "Max", min_value=0, max_value=50000,
+                        value=_def_sal_max, step=500, key="sal_max",
+                    )
+                if salary_max:
+                    st.caption(f"≈ SGD {salary_min*12:,}–{salary_max*12:,}/yr")
+                else:
+                    st.caption(f"≈ SGD {salary_min*12:,}+/yr")
+            with exp_col:
+                st.markdown("**🎓 Years of Experience**")
+                exp_option = st.selectbox(
+                    "Minimum experience",
+                    ["Any", "1+ years", "3+ years", "5+ years", "8+ years", "10+ years"],
+                    index=4, label_visibility="collapsed",
+                )
+                min_years = {"Any": 0, "1+ years": 1, "3+ years": 3,
+                             "5+ years": 5, "8+ years": 8, "10+ years": 10}[exp_option]
+                if min_years:
+                    st.caption(f"Filters MCF results for {min_years}+ years experience")
+
+        # Default salary/years values when MCF expander is collapsed
+        if "sal_min" not in st.session_state:
+            salary_min = _def_sal_min
+        if "sal_max" not in st.session_state:
+            salary_max = _def_sal_max
+        if "sal_min" in st.session_state:
+            salary_min = st.session_state["sal_min"]
+        if "sal_max" in st.session_state:
+            salary_max = st.session_state["sal_max"]
+        if "exp_option" not in locals():
+            min_years = 8
 
         total_sources  = len(sources) + len(selected_companies)
         est_seconds    = max(20, total_sources * 15)
