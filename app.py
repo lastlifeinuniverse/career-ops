@@ -82,13 +82,8 @@ def _check_password() -> bool:
 def _bootstrap_profile():
     """Load and cache the active profile in session state."""
     if "profile_name" not in st.session_state:
-        # Env var wins (useful for dedicated per-person deployments)
+        # Default to your own profile locally unless overridden by env var
         env = get_env_profile()
-        # If running on Streamlit Cloud, also check secrets
-        try:
-            env = st.secrets.get("CAREER_OPS_PROFILE", env) or env
-        except Exception:
-            pass
         st.session_state.profile_name = env if env in AVAILABLE_PROFILES else "default"
 
     if "profile" not in st.session_state:
