@@ -155,17 +155,21 @@ def classify_job(title: str) -> tuple:
 # ============================================================================
 # PAGE CONFIG
 # ============================================================================
-# Install Playwright browser once per container (Streamlit Cloud doesn't run post-install hooks)
-_pw_flag = Path("/tmp/.pw_ready")
-if not _pw_flag.exists():
+@st.cache_resource(show_spinner=False)
+def _install_playwright_browsers():
+    """Install Playwright Chromium once per server process — Streamlit Cloud has no post-install hook."""
     try:
         subprocess.run(
-            ["playwright", "install", "chromium", "--with-deps"],
-            check=False, capture_output=True, timeout=120
+            ["playwright", "install", "chromium"],
+            check=False,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=180,
         )
-        _pw_flag.touch()
     except Exception:
         pass
+
+_install_playwright_browsers()
 
 st.set_page_config(
     page_title="Career-Ops",
