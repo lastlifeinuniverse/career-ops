@@ -98,7 +98,7 @@ classifier:
 
 # ── Scan defaults ──────────────────────────────────────────────────────────────
 defaults:
-  keyword: "Product Owner"
+  keyword: "Senior Business Analyst"
   salary_min: 8000        # SGD monthly (~96K annual)
   salary_max: 16000       # SGD monthly (~192K annual)
   quick_search_terms:
