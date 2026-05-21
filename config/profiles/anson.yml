@@ -1,0 +1,141 @@
+name: anson
+display_name: "Anson Cheah"
+emoji: "💼"
+
+candidate:
+  full_name: "Anson Cheah"
+  age: ~42
+  location: "Singapore"
+  seniority: "Senior / Lead"
+  background: >
+    Senior Business Analyst and Product Owner with 18+ years in digital banking across
+    tier-1 financial institutions (OCBC, UOB, Standard Chartered). Deep expertise in
+    digital onboarding, eKYC/AML, fraud management, Gen-AI features, and Agile delivery.
+    Currently spearheading Gen-AI integration (OCBC Smart Search) and cross-border
+    digital banking products at OCBC.
+  domain_expertise:
+    - "Digital Banking Product Ownership"
+    - "Business Analysis (BA)"
+    - "eKYC / AML / Fraud Management Systems"
+    - "Digital Client Onboarding (Straight-Through Processing)"
+    - "Generative AI feature delivery (Smart Search)"
+    - "Agile / Scrum / SAFe delivery"
+    - "Cross-border digital banking (SG, MY, HK, CN)"
+    - "Mobile banking app consolidation"
+    - "API ecosystem architecture"
+    - "Regulatory compliance (MAS, BORM)"
+  no_experience:
+    - "Wealth management / private banking sales"
+    - "Pure software engineering / development"
+    - "Insurance products"
+    - "Trading / capital markets"
+    - "VP-level P&L ownership"
+
+compensation:
+  current: 110000       # SGD annual estimate for Senior BA at OCBC
+  target_min: 130000
+  target_max: 170000
+  currency: "SGD"
+
+# ── Job classifier ─────────────────────────────────────────────────────────────
+classifier:
+  block:
+    - "part time"
+    - "part-time"
+    - "internship"
+    - "intern "
+    - "entry level"
+    - "junior"
+    - "software engineer"
+    - "software developer"
+    - "frontend developer"
+    - "backend developer"
+    - "fullstack developer"
+    - "data engineer"
+    - "devops"
+    - "wealth advisor"
+    - "financial advisor"
+    - "financial planner"
+    - "insurance agent"
+    - "relationship manager"
+    - "private banker"
+    - "remisier"
+  core:
+    - "product owner"
+    - "business analyst"
+    - "digital banking"
+    - "senior business analyst"
+    - "lead business analyst"
+    - "principal business analyst"
+    - "product manager"
+    - "digital product"
+    - "ba lead"
+    - "po lead"
+    - "head of product"
+    - "digital transformation"
+    - "onboarding product"
+    - "kyc product"
+    - "fraud product"
+    - "payments product"
+    - "mobile banking"
+    - "app product"
+    - "ekyc"
+    - "gen-ai"
+    - "generative ai"
+  adjacent:
+    - "product"
+    - "agile"
+    - "scrum"
+    - "digital"
+    - "fintech"
+    - "banking"
+    - "delivery manager"
+    - "programme manager"
+    - "solution"
+    - "platform"
+    - "transformation"
+    - "innovation"
+
+# ── Scan defaults ──────────────────────────────────────────────────────────────
+defaults:
+  keyword: "Product Owner"
+  salary_min: 8000        # SGD monthly (~96K annual)
+  salary_max: 16000       # SGD monthly (~192K annual)
+  quick_search_terms:
+    - "Product Owner"
+    - "Business Analyst"
+    - "Digital Banking Product"
+    - "Senior Business Analyst"
+    - "Product Manager Fintech"
+    - "Digital Transformation"
+
+# ── Company groups shown in UI ─────────────────────────────────────────────────
+default_company_groups:
+  - "🏦 Banks"
+  - "💳 Fintechs"
+
+# ── AI evaluation persona ──────────────────────────────────────────────────────
+eval_persona: |
+  CANDIDATE FACTS:
+  - Name: Anson Cheah, ~42 years old, Singapore
+  - Career span: 18+ years in digital banking across tier-1 institutions
+  - Background: BUSINESS ANALYSIS and PRODUCT OWNERSHIP — NOT an engineer or VP-level leader
+  - He bridges business and technology — deep delivery experience, strong in requirements and BA craft
+  - Domain expertise: digital onboarding, eKYC/AML, fraud management systems, mobile banking,
+    Gen-AI feature delivery, cross-border banking (SG, MY, HK, CN), Agile/SAFe
+  - Current role: Senior Business Analyst, OCBC Bank (Apr 2021–present)
+    → Led Gen-AI Smart Search, Silver accessibility program, OCBC app consolidation
+  - Prior: Product Owner UOB (2019–2021), Product Owner Standard Chartered (2017–2019),
+    BA Standard Chartered (2010–2016), CIMB Bank, Scope International
+  - Certifications: Certified Scrum Product Owner (CSPO), BIT Honours (Staffordshire University)
+  - Languages: English, Mandarin, Cantonese, Malay
+  - Current annual compensation: ~SGD 110,000 (estimated)
+  - Target range: SGD 130,000–170,000 total
+  - NO experience in: wealth/private banking sales, pure software engineering, insurance, trading
+
+quick_screen_persona: |
+  Senior Business Analyst / Product Owner, ~42 years old, Singapore. 18+ years in digital banking.
+  Currently Senior BA at OCBC — Gen-AI Smart Search, mobile app consolidation, eKYC/AML delivery.
+  Prior PO roles at UOB and Standard Chartered. CSPO certified. Agile/SAFe practitioner.
+  Target: Senior PO, Lead BA, Digital Banking Product Manager roles. SGD 130K–170K.
+  Strong in delivery and BA craft. Not suitable for VP P&L or pure engineering roles.
