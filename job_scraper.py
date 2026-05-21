@@ -603,14 +603,6 @@ async def _scrape_govtech(keywords: str, num_results: int) -> list:
 # INDEED SINGAPORE
 # ============================================================================
 
-async def scrape_indeed(keywords: str, num_results: int = 10) -> list:
-    """
-    Indeed blocks Playwright on cloud servers (Cloudflare).
-    Use LinkedIn's guest jobs API instead — same quality, no auth needed.
-    """
-    return await scrape_linkedin(keywords, num_results)
-
-
 async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
     """
     Scrape LinkedIn via the public guest jobs API — no login, no Playwright needed.
@@ -1605,8 +1597,6 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
                                                  salary_min=salary_min,
                                                  salary_max=salary_max,
                                                  min_years=min_years))
-        if "Indeed" in sources:
-            tasks.append(scrape_indeed(keywords, per_source))
         if "JobStreet" in sources:
             tasks.append(scrape_jobstreet(keywords, per_source))
         if "LinkedIn" in sources:

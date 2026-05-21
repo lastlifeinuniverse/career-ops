@@ -507,7 +507,7 @@ if page == "📋 Pipeline":
         st.divider()
 
         # ── Source lists ──────────────────────────────────────────────────────
-        _all_boards_nonmcf = ["Indeed", "JobStreet", "LinkedIn",
+        _all_boards_nonmcf = ["LinkedIn", "JobStreet",
                                "Glassdoor", "Glints", "Tech in Asia"]
         _all_direct        = ["DBS", "Grab", "Sea Group", "Airwallex", "Stripe",
                                "Thought Machine", "Thunes", "Anthropic"]
