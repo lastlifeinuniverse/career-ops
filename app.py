@@ -1,5 +1,6 @@
 import os
 import re
+import subprocess
 import time
 import streamlit as st
 import streamlit.components.v1 as components
@@ -154,6 +155,18 @@ def classify_job(title: str) -> tuple:
 # ============================================================================
 # PAGE CONFIG
 # ============================================================================
+# Install Playwright browser once per container (Streamlit Cloud doesn't run post-install hooks)
+_pw_flag = Path("/tmp/.pw_ready")
+if not _pw_flag.exists():
+    try:
+        subprocess.run(
+            ["playwright", "install", "chromium", "--with-deps"],
+            check=False, capture_output=True, timeout=120
+        )
+        _pw_flag.touch()
+    except Exception:
+        pass
+
 st.set_page_config(
     page_title="Career-Ops",
     page_icon="🎯",
