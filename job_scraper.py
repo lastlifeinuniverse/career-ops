@@ -12,8 +12,9 @@ Company Direct:
 """
 
 import asyncio
-import xml.etree.ElementTree as _ET
+import re as _re
 import requests as _requests
+from bs4 import BeautifulSoup as _BS
 from playwright.async_api import async_playwright
 
 # ── Company groups shown in UI ───────────────────────────────────────────────
@@ -604,13 +605,81 @@ async def _scrape_govtech(keywords: str, num_results: int) -> list:
 
 async def scrape_indeed(keywords: str, num_results: int = 10) -> list:
     """
-    Indeed blocks all automated access (Cloudflare + IP-range blocking on cloud servers).
-    Fall back to MCF API which covers the same Singapore market reliably.
+    Indeed blocks Playwright on cloud servers (Cloudflare).
+    Use LinkedIn's guest jobs API instead — same quality, no auth needed.
     """
-    print("  ⚠️ Indeed: blocked on cloud — falling back to MCF API")
-    jobs = _call_mcf_api(keywords, num_results=num_results)
-    for j in jobs:
-        j["source"] = "Indeed→MCF"
+    return await scrape_linkedin(keywords, num_results)
+
+
+async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
+    """
+    Scrape LinkedIn via the public guest jobs API — no login, no Playwright needed.
+    Returns up to 25 results per call (LinkedIn guest API limit).
+    """
+    jobs = []
+    try:
+        from urllib.parse import quote
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
+        }
+        fetched = 0
+        start   = 0
+        while fetched < num_results:
+            url = (
+                f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
+                f"?keywords={quote(keywords)}&location=Singapore&start={start}"
+            )
+            resp = _requests.get(url, headers=headers, timeout=15)
+            if resp.status_code != 200:
+                print(f"  ❌ LinkedIn guest API: {resp.status_code}")
+                break
+
+            soup  = _BS(resp.text, "html.parser")
+            cards = soup.find_all("li")
+            if not cards:
+                break
+
+            for card in cards:
+                title_el   = card.find("h3", class_=lambda x: x and "title" in x if x else False)
+                company_el = card.find("h4", class_=lambda x: x and "subtitle" in x if x else False)
+                loc_el     = card.find("span", class_=lambda x: x and "location" in x if x else False)
+                link_el    = card.find("a", class_=lambda x: x and "full-link" in x if x else False)
+
+                title   = title_el.get_text(strip=True)   if title_el   else "Unknown Role"
+                company = company_el.get_text(strip=True) if company_el else "Unknown"
+                loc     = loc_el.get_text(strip=True)     if loc_el     else "Singapore"
+                job_url = link_el["href"].split("?")[0]   if link_el and link_el.get("href") else ""
+
+                # Strip salary from title if embedded (e.g. "BA – Singapore - 80,000 SGD")
+                salary = "Not specified"
+                sal_match = _re.search(r"[\d,]+\s*SGD", title)
+                if sal_match:
+                    salary = sal_match.group(0)
+                    title  = title[:sal_match.start()].strip(" -–")
+
+                jobs.append({
+                    "company":     company,
+                    "title":       title,
+                    "salary":      salary,
+                    "location":    loc,
+                    "url":         job_url,
+                    "description": "",   # guest API doesn't return JD text
+                    "source":      "LinkedIn",
+                })
+                fetched += 1
+                if fetched >= num_results:
+                    break
+
+            start += len(cards)
+            if len(cards) < 10:   # LinkedIn returns fewer cards when exhausted
+                break
+
+        print(f"  → {len(jobs)} jobs (LinkedIn guest API)")
+    except Exception as e:
+        print(f"  ❌ LinkedIn error: {e}")
     return jobs
 
 
@@ -678,67 +747,7 @@ async def scrape_jobstreet(keywords: str, num_results: int = 10) -> list:
 # LINKEDIN JOBS (public, no login — may be throttled)
 # ============================================================================
 
-async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
-    jobs = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            locale="en-US",
-            viewport={"width": 1280, "height": 800},
-        )
-        page = await context.new_page()
-        await page.add_init_script(
-            "Object.defineProperty(navigator,'webdriver',{get:()=>undefined})"
-        )
-        try:
-            query = keywords.replace(" ", "%20")
-            url = (f"https://www.linkedin.com/jobs/search/"
-                   f"?keywords={query}&location=Singapore&sortBy=DD&f_TPR=r2592000")
-            print(f"  → LinkedIn: {url}")
-            await page.goto(url, timeout=30000)
-            await page.wait_for_timeout(4000)
-
-            job_cards = await page.query_selector_all(
-                '.base-card, .base-search-card, [data-entity-urn*="jobPosting"]')
-            print(f"  → {len(job_cards)} cards (LinkedIn)")
-
-            for card in job_cards[:num_results]:
-                try:
-                    title_el    = await card.query_selector('.base-search-card__title, h3')
-                    company_el  = await card.query_selector('.base-search-card__subtitle, h4')
-                    location_el = await card.query_selector('.job-search-card__location')
-                    link_el     = await card.query_selector('a.base-card__full-link, a[href*="linkedin.com/jobs"]')
-
-                    title   = (await title_el.inner_text()).strip()    if title_el    else "Unknown Role"
-                    company = (await company_el.inner_text()).strip()  if company_el  else "Unknown Company"
-                    location= (await location_el.inner_text()).strip() if location_el else "Singapore"
-
-                    job_url = ""
-                    if link_el:
-                        href = await link_el.get_attribute("href")
-                        job_url = href.split("?")[0] if href else ""
-
-                    jobs.append({
-                        "company":     company,
-                        "title":       title,
-                        "salary":      "Not specified",
-                        "location":    location,
-                        "url":         job_url,
-                        "description": "",
-                        "source":      "LinkedIn",
-                    })
-                except Exception as e:
-                    print(f"  ⚠️ LinkedIn card error: {e}")
-
-            if not jobs:
-                print("  ⚠️ LinkedIn 0 results — may be rate-limited")
-        except Exception as e:
-            print(f"  ❌ LinkedIn error: {e}")
-        finally:
-            await browser.close()
-    return jobs
+# Old Playwright LinkedIn scraper removed — replaced by guest API version above
 
 
 # ============================================================================
