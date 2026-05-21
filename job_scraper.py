@@ -12,6 +12,7 @@ Company Direct:
 """
 
 import asyncio
+import xml.etree.ElementTree as _ET
 import requests as _requests
 from playwright.async_api import async_playwright
 
@@ -77,78 +78,88 @@ _YEARS_TO_MCF_LEVELS = {
 
 
 # ============================================================================
-# MYCAREERS FUTURE — general search
+# MYCAREERS FUTURE — REST API (no Playwright needed)
 # ============================================================================
 
-def _build_mcf_url(keywords: str, company: str = None,
-                   salary_min: int = 0, salary_max: int = None,
-                   min_years: int = 0) -> str:
-    """Build a MyCareersFuture search URL with correct salary and experience params."""
-    from urllib.parse import quote
-    kw = quote(keywords)
-    url = (f"https://www.mycareersfuture.gov.sg/search"
-           f"?search={kw}&sortBy=new_posting_date&employmentTypes=Permanent")
+_MCF_API = "https://api.mycareersfuture.gov.sg/v2/jobs"
+_MCF_BASE = "https://www.mycareersfuture.gov.sg/job"
+
+_MCF_EXP_MAP = {
+    1: 3, 3: 3, 5: 4, 8: 5, 10: 6,   # MCF positionLevel IDs
+}
+
+def _call_mcf_api(keywords: str, company: str = None,
+                  salary_min: int = 0, num_results: int = 10,
+                  min_years: int = 0) -> list:
+    """Call MCF REST API and return normalised job dicts."""
+    import re as _re
+    params = {
+        "search":    keywords,
+        "limit":     min(num_results, 100),
+        "sortBy":    "new_posting_date",
+        "employmentTypes": "Permanent",
+    }
     if company:
-        url += f"&company={quote(company)}"
-    # MCF only supports minimum salary via &salary=X (monthly SGD)
+        params["companyName"] = company
     if salary_min and salary_min > 0:
-        url += f"&salary={salary_min}"
-    # MCF does not support max salary — applied as post-filter in _parse_mcf_page
-    # Position level from years-of-experience (repeating &positionLevel= for each level)
-    if min_years and min_years > 0:
-        # Find the closest key >= min_years
-        key = min((_YEARS_TO_MCF_LEVELS.keys()),
-                  key=lambda k: abs(k - min_years) if k >= min_years else 9999,
-                  default=None)
-        if key:
-            for level in _YEARS_TO_MCF_LEVELS[key]:
-                url += f"&positionLevel={quote(level)}"
-    return url
+        params["salary"] = salary_min
+    if min_years and min_years in _MCF_EXP_MAP:
+        params["positionLevels"] = _MCF_EXP_MAP[min_years]
+
+    headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json"}
+    try:
+        resp = _requests.get(_MCF_API, params=params, headers=headers, timeout=15)
+        resp.raise_for_status()
+        results = resp.json().get("results", [])
+    except Exception as e:
+        print(f"  ❌ MCF API error: {e}")
+        return []
+
+    jobs = []
+    for j in results:
+        sal     = j.get("salary") or {}
+        sal_min = sal.get("minimum", 0) or 0
+        sal_max = sal.get("maximum", 0) or 0
+        sal_str = (f"SGD {sal_min:,}–{sal_max:,}/mth"
+                   if sal_min and sal_max else
+                   f"SGD {sal_min:,}+/mth" if sal_min else "Not specified")
+
+        meta    = j.get("metadata", {})
+        url     = meta.get("jobDetailsUrl", "")
+        company_name = (j.get("postedCompany") or {}).get("name", "Unknown")
+        desc_html    = j.get("description", "")
+        desc_clean   = _re.sub(r"<[^>]+>", " ", desc_html).strip()
+
+        jobs.append({
+            "company":     company_name,
+            "title":       j.get("title", "Unknown Role"),
+            "description": desc_clean,
+            "salary":      sal_str,
+            "location":    "Singapore",
+            "url":         url,
+            "source":      "MyCareersFuture",
+        })
+    print(f"  → {len(jobs)} jobs (MCF API{' · ' + company if company else ''})")
+    return jobs
 
 
 async def scrape_mycareersfuture(keywords: str, num_results: int = 10,
                                   salary_min: int = 0, salary_max: int = None,
                                   min_years: int = 0) -> list:
-    jobs = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            url = _build_mcf_url(keywords, salary_min=salary_min,
-                                  salary_max=salary_max, min_years=min_years)
-            print(f"  → MCF general: {url}")
-            await page.goto(url, timeout=30000)
-            await page.wait_for_timeout(3000)
-            jobs = await _parse_mcf_page(page, num_results, "MyCareersFuture",
-                                          salary_min=salary_min, salary_max=salary_max)
-        except Exception as e:
-            print(f"  ❌ MCF error: {e}")
-        finally:
-            await browser.close()
-    return jobs
+    """MCF general search via REST API."""
+    return _call_mcf_api(keywords, salary_min=salary_min,
+                         num_results=num_results, min_years=min_years)
 
 
 async def _scrape_mcf_company(company: str, mcf_name: str, keywords: str,
                                num_results: int, salary_min: int = 0,
                                salary_max: int = None, min_years: int = 0) -> list:
-    """MCF search filtered by company name, salary, and experience."""
-    jobs = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        try:
-            url = _build_mcf_url(keywords, company=mcf_name,
-                                  salary_min=salary_min, salary_max=salary_max,
-                                  min_years=min_years)
-            print(f"  → MCF [{company}]: {url}")
-            await page.goto(url, timeout=30000)
-            await page.wait_for_timeout(3000)
-            jobs = await _parse_mcf_page(page, num_results, f"Direct:{company}",
-                                          salary_min=salary_min, salary_max=salary_max)
-        except Exception as e:
-            print(f"  ❌ MCF [{company}] error: {e}")
-        finally:
-            await browser.close()
+    """MCF company-filtered search via REST API."""
+    jobs = _call_mcf_api(keywords, company=mcf_name,
+                         salary_min=salary_min, num_results=num_results,
+                         min_years=min_years)
+    for j in jobs:
+        j["source"] = f"Direct:{company}"
     return jobs
 
 
@@ -592,64 +603,14 @@ async def _scrape_govtech(keywords: str, num_results: int) -> list:
 # ============================================================================
 
 async def scrape_indeed(keywords: str, num_results: int = 10) -> list:
-    jobs = []
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                       "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 900},
-        )
-        page = await context.new_page()
-        try:
-            query = keywords.replace(" ", "+")
-            url = f"https://sg.indeed.com/jobs?q={query}&l=Singapore&sort=date"
-            print(f"  → Indeed: {url}")
-            await page.goto(url, timeout=30000)
-            await page.wait_for_timeout(3000)
-
-            job_cards = await page.query_selector_all(
-                '.job_seen_beacon, .jobsearch-ResultsList > li, [class*="job_seen"]')
-            print(f"  → {len(job_cards)} cards (Indeed)")
-
-            for card in job_cards[:num_results]:
-                try:
-                    title_el   = await card.query_selector('[class*="jobTitle"], h2 a, .jcs-JobTitle')
-                    company_el = await card.query_selector('[data-testid="company-name"], .companyName')
-                    salary_el  = await card.query_selector('[class*="salary"], .estimated-salary, [data-testid="attribute_snippet_testid"]')
-                    link_el    = await card.query_selector('a[href*="/rc/clk"], a[href*="indeed.com"], h2 a')
-                    # Grab the card snippet — this is always available without navigating
-                    snippet_el = await card.query_selector('[class*="snippet"], .job-snippet, [class*="jobSnippet"]')
-
-                    title   = (await title_el.inner_text()).strip()   if title_el   else "Unknown Role"
-                    company = (await company_el.inner_text()).strip() if company_el else "Unknown Company"
-                    salary  = (await salary_el.inner_text()).strip()  if salary_el  else "Not specified"
-                    snippet = (await snippet_el.inner_text()).strip() if snippet_el else ""
-
-                    job_url = ""
-                    if link_el:
-                        href = await link_el.get_attribute("href")
-                        if href:
-                            job_url = href if href.startswith("http") else f"https://sg.indeed.com{href}"
-
-                    jobs.append({
-                        "company":     company,
-                        "title":       title,
-                        "salary":      salary,
-                        "location":    "Singapore",
-                        "url":         job_url,
-                        # Indeed blocks headless navigation to job detail pages (Cloudflare).
-                        # Store the card snippet — user can paste the full JD via the spotlight panel.
-                        "description": snippet,
-                        "source":      "Indeed",
-                    })
-                except Exception as e:
-                    print(f"  ⚠️ Indeed card error: {e}")
-
-        except Exception as e:
-            print(f"  ❌ Indeed error: {e}")
-        finally:
-            await browser.close()
+    """
+    Indeed blocks all automated access (Cloudflare + IP-range blocking on cloud servers).
+    Fall back to MCF API which covers the same Singapore market reliably.
+    """
+    print("  ⚠️ Indeed: blocked on cloud — falling back to MCF API")
+    jobs = _call_mcf_api(keywords, num_results=num_results)
+    for j in jobs:
+        j["source"] = "Indeed→MCF"
     return jobs
 
 
