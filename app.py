@@ -131,9 +131,14 @@ _DEFAULT_ADJACENT = [
     "technology lead", "tech lead", "programme manager",
     "delivery manager", "business analyst", "solution owner",
     "innovation", "platform", "product",
-    # Social sector adjacent
+    # Social sector adjacent — public agencies, VWOs, foundations
     "programme officer", "programme director", "change manager",
     "capability lead", "systems lead", "data lead",
+    "digital readiness", "digital enablement", "ict manager",
+    "head of ict", "data analytics", "data governance",
+    "director, digital", "manager, digital", "manager, technology",
+    "director, technology", "director, innovation",
+    "ai enablement", "ai programme", "technology programme",
 ]
 
 
@@ -935,9 +940,16 @@ if page == "📋 Pipeline":
                 continue
             display_rows.append((r, tier, cl_reason))
 
+        _hidden = total - len(display_rows) - blocked_count
+        _hidden_note = (
+            f" · ⚠️ {_hidden} hidden in Low Relevance — add it to 'Show tiers' to see all"
+            if _hidden > 0 and "⚠️ Low relevance" not in tier_filter
+            else ""
+        )
         st.caption(
             f"Showing {len(display_rows)} of {total} · "
-            f"{blocked_count} blocked · "
+            f"{blocked_count} blocked"
+            f"{_hidden_note} · "
             "👆 Click a row to open the spotlight"
         )
 
