@@ -120,12 +120,20 @@ _DEFAULT_CORE = [
     "innovation lead", "innovation manager",
     "digital transformation", "squad lead", "chapter lead",
     "digital banking lead", "digital banking product",
+    # Social sector / non-profit titles
+    "head of digital", "head of technology", "chief digital", "chief technology",
+    "digital inclusion", "tech for good", "digital transformation lead",
+    "programme lead", "technology lead", "head of innovation",
+    "digital strategy", "ai lead", "head of ai",
 ]
 _DEFAULT_ADJACENT = [
     "digital", "agile", "fintech", "transformation",
     "technology lead", "tech lead", "programme manager",
     "delivery manager", "business analyst", "solution owner",
     "innovation", "platform", "product",
+    # Social sector adjacent
+    "programme officer", "programme director", "change manager",
+    "capability lead", "systems lead", "data lead",
 ]
 
 
@@ -477,12 +485,20 @@ if page == "📋 Pipeline":
         _def_sal_max  = int(get_setting("default_sal_max", str(_prof_defaults["salary_max"])))
 
         predefined_terms = _prof_defaults["quick_terms"] or [
-            "AI Product Manager Banking",
-            "Digital Banking Platform",
-            "AI Product Leadership",
-            "AI Transformation",
-            "Digital Risk Management",
-            "Anti-Fraud & Compliance",
+            # ── Private sector ──────────────────────────────────────────────
+            "AI Product Manager",
+            "Head of AI Product",
+            "Digital Banking Product Lead",
+            "VP Product Digital",
+            "AI Transformation Lead",
+            "Senior Product Manager Fintech",
+            # ── Non-profit / Social sector ──────────────────────────────────
+            "Digital Transformation Lead",
+            "Head of Digital",
+            "Programme Lead Technology",
+            "Digital Inclusion",
+            "Tech for Good",
+            "Innovation Lead",
         ]
 
         dd_col, kw_col, cnt_col = st.columns([2, 2, 1])
