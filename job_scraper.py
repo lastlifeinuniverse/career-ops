@@ -77,16 +77,16 @@ COMPANY_CONFIG = {
     "CSA":                {"type": "mcf",         "mcf_name": "Cyber Security Agency of Singapore"},
     "Singtel":            {"type": "mcf",         "mcf_name": "Singtel"},
     # Social Sector — Careers@Gov Workday
-    "NCSS":               {"type": "careers_gov", "search_prefix": "National Council of Social Service"},
-    "SG Enable":          {"type": "careers_gov", "search_prefix": "SG Enable"},
-    "Tote Board":         {"type": "careers_gov", "search_prefix": "Tote Board"},
-    # Social Sector — MCF
-    "Community Chest":    {"type": "mcf",         "mcf_name": "Community Chest"},
-    "Temasek Foundation": {"type": "mcf",         "mcf_name": "Temasek Foundation"},
-    # Tech for Good — MCF
-    "AI Singapore":       {"type": "mcf",         "mcf_name": "AI Singapore"},
-    "Tech for Good Institute": {"type": "mcf",    "mcf_name": "Tech for Good Institute"},
-    "DataKind SG":        {"type": "mcf",         "mcf_name": "DataKind"},
+    # Social Sector — LinkedIn org-name search (MCF & Careers@Gov return 0 for these orgs)
+    "NCSS":               {"type": "linkedin_org", "org_name": "NCSS"},
+    "SG Enable":          {"type": "linkedin_org", "org_name": "SG Enable"},
+    "Tote Board":         {"type": "linkedin_org", "org_name": "Tote Board"},
+    "Community Chest":    {"type": "linkedin_org", "org_name": "Community Chest"},
+    "Temasek Foundation": {"type": "linkedin_org", "org_name": "Temasek Foundation"},
+    # Tech for Good — LinkedIn org-name search
+    "AI Singapore":       {"type": "linkedin_org", "org_name": "AI Singapore"},
+    "Tech for Good Institute": {"type": "linkedin_org", "org_name": "Tech for Good Institute"},
+    "DataKind SG":        {"type": "linkedin_org", "org_name": "DataKind Singapore"},
 }
 
 # MCF positionLevel values (exact strings used in MCF URLs)
@@ -700,11 +700,35 @@ async def scrape_linkedin(keywords: str, num_results: int = 10,
 
 
 async def scrape_linkedin_nonprofit(keywords: str, num_results: int = 10) -> list:
-    """LinkedIn guest API filtered to non-profit / social sector (f_I=8)."""
-    jobs = await scrape_linkedin(keywords, num_results, industry_filter="8")
-    for j in jobs:
-        j["source"] = "LinkedIn (Non-Profit)"
-    return jobs
+    """
+    LinkedIn guest API for non-profit / social sector roles.
+
+    LinkedIn's f_I industry filter is NOT honoured by the guest API endpoint —
+    it is silently ignored and returns the same results regardless of the value.
+    Instead we enrich the keyword query with sector qualifiers so LinkedIn's own
+    search engine surfaces social-sector employers.
+
+    Two passes are run and results are deduped by URL:
+      Pass 1 — "{keywords} nonprofit social service"
+      Pass 2 — "{keywords} VWO charity foundation"
+    """
+    seen_urls: set = set()
+    combined: list = []
+
+    per_pass = max(num_results // 2, 5)
+
+    for qualifier in ("nonprofit social service", "VWO charity foundation"):
+        enriched = f"{keywords} {qualifier}"
+        batch = await scrape_linkedin(enriched, per_pass)
+        for j in batch:
+            key = j.get("url") or f"{j['company']}|{j['title']}"
+            if key not in seen_urls:
+                seen_urls.add(key)
+                j["source"] = "LinkedIn (Non-Profit)"
+                combined.append(j)
+
+    print(f"  → {len(combined)} jobs (LinkedIn Non-Profit keyword enrichment)")
+    return combined[:num_results]
 
 
 # ============================================================================
@@ -1572,6 +1596,15 @@ async def _scrape_company(company: str, keywords: str, num_results: int,
 
     if t == "careers_gov":
         return await _scrape_careers_gov(company, cfg.get("search_prefix", company), keywords, num_results)
+
+    if t == "linkedin_org":
+        # Search LinkedIn with org name as part of keywords — most reliable for non-profits
+        org_name = cfg.get("org_name", company)
+        enriched = f'"{org_name}" {keywords}'
+        jobs = await scrape_linkedin(enriched, num_results)
+        for j in jobs:
+            j["source"] = f"Direct:{company}"
+        return jobs
 
     if t == "greenhouse":
         return scrape_greenhouse_api(cfg["slug"], company, keywords, num_results)

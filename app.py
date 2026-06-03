@@ -636,11 +636,16 @@ if page == "📋 Pipeline":
                     if st.checkbox(company, value=False, key=f"co_{company}"):
                         selected_companies.append(company)
 
-            # LinkedIn Non-Profit filter
-            st.markdown("**🔍 LinkedIn — Non-Profit sector filter**")
+            # LinkedIn Non-Profit broad search
+            st.markdown("**🔍 LinkedIn — Social Sector broad search**")
             if st.checkbox("LinkedIn (Non-Profit)", value=False, key="board_LinkedIn (Non-Profit)"):
                 sources.append("LinkedIn (Non-Profit)")
-            st.caption("Searches LinkedIn with industry filter for non-profit / social sector roles.")
+            st.caption(
+                "Runs two LinkedIn passes: *'{keyword} nonprofit social service'* "
+                "and *'{keyword} VWO charity foundation'* — best for finding social sector roles. "
+                "Tip: use short role terms like **Head of Digital**, **Digital Transformation**, "
+                "**Innovation Lead**, or **Technology** for the most results."
+            )
 
             st.divider()
 
