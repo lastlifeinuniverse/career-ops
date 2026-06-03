@@ -701,34 +701,65 @@ async def scrape_linkedin(keywords: str, num_results: int = 10,
 
 async def scrape_linkedin_nonprofit(keywords: str, num_results: int = 10) -> list:
     """
-    LinkedIn guest API for non-profit / social sector roles.
+    LinkedIn guest API optimised for Singapore social-sector roles.
 
-    LinkedIn's f_I industry filter is NOT honoured by the guest API endpoint —
-    it is silently ignored and returns the same results regardless of the value.
-    Instead we enrich the keyword query with sector qualifiers so LinkedIn's own
-    search engine surfaces social-sector employers.
+    Strategy — three pass types, all deduped:
 
-    Two passes are run and results are deduped by URL:
-      Pass 1 — "{keywords} nonprofit social service"
-      Pass 2 — "{keywords} VWO charity foundation"
+    Pass A  Role-keyword pass (user's keywords, unfiltered)
+            Broad role terms surface non-profit employers that happen to be
+            hiring for that role (e.g. "digital transformation" → NTUC, Focus
+            on the Family; "innovation lead" → MOH, GovTech, SGH).
+
+    Pass B  Sector-role pass (fixed digital-leadership terms common in VWOs)
+            Catches non-profits even when the user typed a private-sector term.
+
+    Pass C  Org-name pass (known SG non-profit / social-sector employers)
+            Searches LinkedIn by org name so we see ALL of their open roles,
+            not just ones matching the user's keyword.
+
+    The classifier tier system (Core / Adjacent / Low) then sorts results.
     """
-    seen_urls: set = set()
+    seen: set = set()
     combined: list = []
 
-    per_pass = max(num_results // 2, 5)
-
-    for qualifier in ("nonprofit social service", "VWO charity foundation"):
-        enriched = f"{keywords} {qualifier}"
-        batch = await scrape_linkedin(enriched, per_pass)
+    def _add(batch: list, source_label: str = "LinkedIn (Non-Profit)"):
         for j in batch:
-            key = j.get("url") or f"{j['company']}|{j['title']}"
-            if key not in seen_urls:
-                seen_urls.add(key)
-                j["source"] = "LinkedIn (Non-Profit)"
+            key = j.get("url") or f"{j.get('company','')}|{j.get('title','')}"
+            if key not in seen:
+                seen.add(key)
+                j["source"] = source_label
                 combined.append(j)
 
-    print(f"  → {len(combined)} jobs (LinkedIn Non-Profit keyword enrichment)")
-    return combined[:num_results]
+    per_pass = max(num_results, 10)   # fetch at least 10 per pass
+
+    # ── Pass A: user's keyword — broad, no qualifier ──────────────────────────
+    _add(await scrape_linkedin(keywords, per_pass))
+
+    # ── Pass B: sector-specific digital-leadership role terms ─────────────────
+    sector_terms = [
+        "digital transformation social service",
+        "head of digital",
+        "innovation lead",
+        "technology programme",
+    ]
+    for term in sector_terms:
+        if len(combined) >= num_results * 3:   # enough already
+            break
+        _add(await scrape_linkedin(term, 8))
+
+    # ── Pass C: known Singapore non-profit & public-sector org names ──────────
+    sg_nonprofit_orgs = [
+        "NCSS", "SG Enable", "IMDA", "AI Singapore",
+        "Temasek Foundation", "Community Chest",
+        "MINDSG", "Agency for Integrated Care",
+    ]
+    for org in sg_nonprofit_orgs:
+        if len(combined) >= num_results * 4:
+            break
+        _add(await scrape_linkedin(org, 6))
+
+    print(f"  → {len(combined)} jobs (LinkedIn Non-Profit multi-pass)")
+    return combined[:num_results * 2]   # return up to 2× requested — classifier will sort
 
 
 # ============================================================================
@@ -1598,10 +1629,12 @@ async def _scrape_company(company: str, keywords: str, num_results: int,
         return await _scrape_careers_gov(company, cfg.get("search_prefix", company), keywords, num_results)
 
     if t == "linkedin_org":
-        # Search LinkedIn with org name as part of keywords — most reliable for non-profits
+        # Search LinkedIn by org name (broad — returns all open roles at that org).
+        # We intentionally do NOT append the user's role keyword: the org may only
+        # have a few openings and restricting by keyword would return 0 results.
+        # The tier classifier in the UI surfaces the relevant ones.
         org_name = cfg.get("org_name", company)
-        enriched = f'"{org_name}" {keywords}'
-        jobs = await scrape_linkedin(enriched, num_results)
+        jobs = await scrape_linkedin(org_name, num_results)
         for j in jobs:
             j["source"] = f"Direct:{company}"
         return jobs
