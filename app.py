@@ -742,7 +742,11 @@ if page == "📋 Pipeline":
                     c = conn.cursor()
                     new_ids = []
                     for job in result["jobs"]:
-                        job_url = job.get("url", "").strip()
+                        job_url  = job.get("url", "").strip()
+                        job_title   = job.get("title", "").strip()
+                        job_company = job.get("company", "").strip()
+
+                        # ── Dedup 1: same URL (strip query params / fragments) ────────
                         if job_url:
                             from urllib.parse import urlparse
                             parsed = urlparse(job_url)
@@ -751,6 +755,15 @@ if page == "📋 Pipeline":
                             else:
                                 base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
                             c.execute("SELECT id FROM jobs WHERE url LIKE ?", (f"{base_url}%",))
+                            if c.fetchone():
+                                continue
+
+                        # ── Dedup 2: same company + title (URL may differ on re-scan) ─
+                        if job_title and job_company:
+                            c.execute(
+                                "SELECT id FROM jobs WHERE company = ? AND title = ?",
+                                (job_company, job_title),
+                            )
                             if c.fetchone():
                                 continue
                         c.execute(
