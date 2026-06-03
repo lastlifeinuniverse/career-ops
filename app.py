@@ -514,9 +514,12 @@ if page == "📋 Pipeline":
         _all_careers_gov   = ["GovTech", "HTX", "SNDGO", "DSTA",
                                "CPF Board", "HDB", "LTA", "MOF", "MOM",
                                "ICA", "MOH Holdings"]
-        _all_mcf_companies = ["OCBC", "UOB", "Standard Chartered", "Citibank",
+        _all_mcf_companies  = ["OCBC", "UOB", "Standard Chartered", "Citibank",
                                "HSBC", "Wise", "Nium", "Revolut", "PayPal",
                                "MAS", "IMDA", "CSA", "Singtel"]
+        _all_social_sector  = ["NCSS", "SG Enable", "Tote Board",
+                               "Community Chest", "Temasek Foundation"]
+        _all_tech_for_good  = ["AI Singapore", "Tech for Good Institute", "DataKind SG"]
 
         selected_companies = []
         sources = []
@@ -582,7 +585,50 @@ if page == "📋 Pipeline":
 
         st.divider()
 
-        # ── 4. MyCareersFuture (FCF compliance — lower priority) ─────────────
+        # ── 4. Social Sector & Non-Profits ────────────────────────────────────
+        _active_profile_name = st.session_state.get("profile", {}).get("name", "default")
+        _show_social = _active_profile_name == "default"  # Only shown for Yingkai's profile
+        if _show_social:
+            h4, a4 = st.columns([5, 1])
+            with h4:
+                st.subheader("❤️ Social Sector & Non-Profits")
+                st.caption("NCSS VWOs, social service agencies, and foundations in Singapore.")
+            with a4:
+                st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
+                st.checkbox("All", key="all_social",
+                            on_change=_select_all_toggle, args=("co_", _all_social_sector, "all_social"))
+            cols_s = st.columns(4)
+            for i, company in enumerate(_all_social_sector):
+                with cols_s[i % 4]:
+                    if st.checkbox(company, value=False, key=f"co_{company}"):
+                        selected_companies.append(company)
+
+            st.divider()
+
+            # ── 4b. Tech for Good ─────────────────────────────────────────────
+            h4b, a4b = st.columns([5, 1])
+            with h4b:
+                st.subheader("🌱 Tech for Good")
+                st.caption("AI Singapore, Tech for Good Institute, and impact-driven tech orgs.")
+            with a4b:
+                st.markdown("<div style='margin-top:14px'></div>", unsafe_allow_html=True)
+                st.checkbox("All", key="all_techgood",
+                            on_change=_select_all_toggle, args=("co_", _all_tech_for_good, "all_techgood"))
+            cols_tg = st.columns(4)
+            for i, company in enumerate(_all_tech_for_good):
+                with cols_tg[i % 4]:
+                    if st.checkbox(company, value=False, key=f"co_{company}"):
+                        selected_companies.append(company)
+
+            # LinkedIn Non-Profit filter
+            st.markdown("**🔍 LinkedIn — Non-Profit sector filter**")
+            if st.checkbox("LinkedIn (Non-Profit)", value=False, key="board_LinkedIn (Non-Profit)"):
+                sources.append("LinkedIn (Non-Profit)")
+            st.caption("Searches LinkedIn with industry filter for non-profit / social sector roles.")
+
+            st.divider()
+
+        # ── 5. MyCareersFuture (FCF compliance — lower priority) ─────────────
         with st.expander(
             "📋 MyCareersFuture & MCF-listed companies  *(FCF compliance portal — lower priority)*",
             expanded=False,

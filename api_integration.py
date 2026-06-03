@@ -548,6 +548,21 @@ def _parse_score_summary(evaluation_text: str, model: str) -> dict:
     }
 
 
+def _is_social_sector_job(job_description: str) -> bool:
+    """Heuristic: return True if the JD looks like a social-sector / non-profit role."""
+    text = job_description.lower()
+    social_signals = [
+        "non-profit", "nonprofit", "non profit", "vwo", "voluntary welfare",
+        "charity", "social service", "social sector", "tech for good",
+        "ncss", "sg enable", "tote board", "community chest", "temasek foundation",
+        "ai singapore", "imda", "sndgo", "govtech", "digital inclusion",
+        "impact-driven", "mission-driven", "social impact", "beneficiaries",
+        "persons with disabilities", "special needs", "vulnerable",
+        "ground-up", "programme lead", "public good",
+    ]
+    return any(signal in text for signal in social_signals)
+
+
 def _build_eval_prompt(job_description: str, context: dict, comp_note: str, salary_settings: dict = None) -> str:
     """Build the shared 7-block evaluation prompt used by Claude and Gemini."""
     if salary_settings is None:
@@ -577,6 +592,14 @@ def _build_eval_prompt(job_description: str, context: dict, comp_note: str, sala
 - Current annual compensation: ~SGD {salary_settings['current']:,.0f} (base + bonus)
 - Target range for next role: SGD {salary_settings['target_min']:,.0f}–{salary_settings['target_max']:,.0f} total (minimum SGD {salary_settings['current']:,.0f})"""
 
+    # ── Nonprofit context injection (Yingkai's default profile only) ────────────
+    nonprofit_note = ""
+    profile_nonprofit = _ACTIVE_PROFILE.get("nonprofit", {}) if _ACTIVE_PROFILE else {}
+    if profile_nonprofit.get("open_to") and _is_social_sector_job(job_description):
+        eval_note = profile_nonprofit.get("eval_note", "").strip()
+        if eval_note:
+            nonprofit_note = f"\n\n{eval_note}\n"
+
     return f"""You are a career evaluation assistant. Evaluate the job description below against this candidate's CV.
 Respond entirely in English.
 
@@ -586,7 +609,7 @@ CANDIDATE CV:
 ---
 
 {candidate_block}
-{comp_note}
+{nonprofit_note}{comp_note}
 Write a concise 7-block evaluation (3-5 bullet points per block max). Be accurate and honest — flag gaps clearly, do not be optimistic about poor fits. Keep total response under 1500 words so the SCORE_SUMMARY block always fits.
 
 ## Block A: Candidate Resume Analysis

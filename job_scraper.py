@@ -24,6 +24,17 @@ COMPANY_GROUPS = {
     "🤖 AI Companies":     ["Anthropic"],
     "🏛️ Gov / Statutory":  ["GovTech", "HTX", "SNDGO", "DSTA", "MAS", "IMDA", "CSA",
                              "CPF Board", "HDB", "LTA", "MOF", "MOM", "ICA", "MOH Holdings", "Singtel"],
+    "❤️ Social Sector":    ["NCSS", "SG Enable", "Tote Board", "Community Chest",
+                             "Temasek Foundation"],
+    "🌱 Tech for Good":    ["AI Singapore", "Tech for Good Institute", "DataKind SG"],
+}
+
+# Keywords that flag a job as social-sector for eval prompt enrichment
+SOCIAL_SECTOR_KEYWORDS = {
+    "ncss", "vwo", "voluntary welfare", "social service", "non-profit", "nonprofit",
+    "ngo", "charity", "community chest", "sg enable", "tote board", "giving.sg",
+    "tech for good", "social impact", "inclusive", "disability", "mental health",
+    "social sector", "play.able", "temasek foundation", "aisg", "ai singapore",
 }
 
 # ── Per-company scraping config ──────────────────────────────────────────────
@@ -65,6 +76,17 @@ COMPANY_CONFIG = {
     "IMDA":               {"type": "mcf",         "mcf_name": "Info-communications Media Development Authority"},
     "CSA":                {"type": "mcf",         "mcf_name": "Cyber Security Agency of Singapore"},
     "Singtel":            {"type": "mcf",         "mcf_name": "Singtel"},
+    # Social Sector — Careers@Gov Workday
+    "NCSS":               {"type": "careers_gov", "search_prefix": "National Council of Social Service"},
+    "SG Enable":          {"type": "careers_gov", "search_prefix": "SG Enable"},
+    "Tote Board":         {"type": "careers_gov", "search_prefix": "Tote Board"},
+    # Social Sector — MCF
+    "Community Chest":    {"type": "mcf",         "mcf_name": "Community Chest"},
+    "Temasek Foundation": {"type": "mcf",         "mcf_name": "Temasek Foundation"},
+    # Tech for Good — MCF
+    "AI Singapore":       {"type": "mcf",         "mcf_name": "AI Singapore"},
+    "Tech for Good Institute": {"type": "mcf",    "mcf_name": "Tech for Good Institute"},
+    "DataKind SG":        {"type": "mcf",         "mcf_name": "DataKind"},
 }
 
 # MCF positionLevel values (exact strings used in MCF URLs)
@@ -603,10 +625,11 @@ async def _scrape_govtech(keywords: str, num_results: int) -> list:
 # INDEED SINGAPORE
 # ============================================================================
 
-async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
+async def scrape_linkedin(keywords: str, num_results: int = 10,
+                          industry_filter: str = None) -> list:
     """
     Scrape LinkedIn via the public guest jobs API — no login, no Playwright needed.
-    Returns up to 25 results per call (LinkedIn guest API limit).
+    industry_filter: LinkedIn industry ID e.g. "8" = Non-profit / Social services
     """
     jobs = []
     try:
@@ -619,10 +642,11 @@ async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
         }
         fetched = 0
         start   = 0
+        industry_param = f"&f_I={industry_filter}" if industry_filter else ""
         while fetched < num_results:
             url = (
                 f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search"
-                f"?keywords={quote(keywords)}&location=Singapore&start={start}"
+                f"?keywords={quote(keywords)}&location=Singapore&start={start}{industry_param}"
             )
             resp = _requests.get(url, headers=headers, timeout=15)
             if resp.status_code != 200:
@@ -672,6 +696,14 @@ async def scrape_linkedin(keywords: str, num_results: int = 10) -> list:
         print(f"  → {len(jobs)} jobs (LinkedIn guest API)")
     except Exception as e:
         print(f"  ❌ LinkedIn error: {e}")
+    return jobs
+
+
+async def scrape_linkedin_nonprofit(keywords: str, num_results: int = 10) -> list:
+    """LinkedIn guest API filtered to non-profit / social sector (f_I=8)."""
+    jobs = await scrape_linkedin(keywords, num_results, industry_filter="8")
+    for j in jobs:
+        j["source"] = "LinkedIn (Non-Profit)"
     return jobs
 
 
@@ -1601,6 +1633,8 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
             tasks.append(scrape_jobstreet(keywords, per_source))
         if "LinkedIn" in sources:
             tasks.append(scrape_linkedin(keywords, per_source))
+        if "LinkedIn (Non-Profit)" in sources:
+            tasks.append(scrape_linkedin_nonprofit(keywords, per_source))
         if "Glassdoor" in sources:
             tasks.append(scrape_glassdoor(keywords, per_source))
         if "Glints" in sources:
