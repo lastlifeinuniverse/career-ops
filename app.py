@@ -646,11 +646,10 @@ if page == "📋 Pipeline":
             if st.checkbox("LinkedIn (Non-Profit)", value=False, key="board_LinkedIn (Non-Profit)"):
                 sources.append("LinkedIn (Non-Profit)")
             st.caption(
-                "Runs multiple LinkedIn passes: your keyword (broad), sector role terms "
-                "(Digital Transformation, Innovation Lead, etc.), and direct searches on "
-                "known SG non-profit orgs (NCSS, SG Enable, AI Singapore, AIC…). "
-                "Results are combined — the tier classifier sorts out what's relevant. "
-                "Also tick the org checkboxes above to scrape each org individually."
+                "Searches LinkedIn by org name for ~18 known SG non-profit and social-sector "
+                "employers (NCSS, SG Enable, MINDSG, Temasek Foundation, AI Singapore, "
+                "GovTech, AIC…). Only shows roles actually posted by those orgs — "
+                "no commercial companies. Tick the org checkboxes above for targeted single-org searches."
             )
 
             st.divider()

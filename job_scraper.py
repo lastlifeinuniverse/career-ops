@@ -701,65 +701,46 @@ async def scrape_linkedin(keywords: str, num_results: int = 10,
 
 async def scrape_linkedin_nonprofit(keywords: str, num_results: int = 10) -> list:
     """
-    LinkedIn guest API optimised for Singapore social-sector roles.
+    LinkedIn guest API for Singapore social-sector roles.
 
-    Strategy — three pass types, all deduped:
+    Only searches by org name — NOT by role keyword — because LinkedIn's
+    guest API has no industry filter, so any keyword search returns results
+    from all industries (Foodpanda, Shopee, etc. appear alongside VWOs).
 
-    Pass A  Role-keyword pass (user's keywords, unfiltered)
-            Broad role terms surface non-profit employers that happen to be
-            hiring for that role (e.g. "digital transformation" → NTUC, Focus
-            on the Family; "innovation lead" → MOH, GovTech, SGH).
-
-    Pass B  Sector-role pass (fixed digital-leadership terms common in VWOs)
-            Catches non-profits even when the user typed a private-sector term.
-
-    Pass C  Org-name pass (known SG non-profit / social-sector employers)
-            Searches LinkedIn by org name so we see ALL of their open roles,
-            not just ones matching the user's keyword.
-
-    The classifier tier system (Core / Adjacent / Low) then sorts results.
+    Searching by org name confines results to jobs actually posted by those
+    specific non-profit / public-sector employers.  The tier classifier in the
+    UI then surfaces which of their open roles are relevant.
     """
+    # Comprehensive list of SG non-profit, social-sector & public-service orgs
+    sg_nonprofit_orgs = [
+        # Social service councils & VWOs
+        "NCSS", "SG Enable", "MINDSG", "Agency for Integrated Care",
+        "Community Chest", "Thye Hua Kwan", "SPD",
+        "Touch Community Services", "Samaritans of Singapore",
+        # Foundations & philanthropy
+        "Temasek Foundation", "Tote Board", "National Kidney Foundation",
+        # Tech-for-good & govt-linked
+        "AI Singapore", "Tech for Good Institute",
+        "IMDA", "GovTech Singapore",
+        # Social sector umbrella orgs
+        "National Volunteer Philanthropy Centre", "NVPC",
+    ]
+
     seen: set = set()
     combined: list = []
+    per_org = max(num_results // len(sg_nonprofit_orgs) + 1, 5)
 
-    def _add(batch: list, source_label: str = "LinkedIn (Non-Profit)"):
+    for org in sg_nonprofit_orgs:
+        batch = await scrape_linkedin(org, per_org)
         for j in batch:
             key = j.get("url") or f"{j.get('company','')}|{j.get('title','')}"
             if key not in seen:
                 seen.add(key)
-                j["source"] = source_label
+                j["source"] = "LinkedIn (Non-Profit)"
                 combined.append(j)
 
-    per_pass = max(num_results, 10)   # fetch at least 10 per pass
-
-    # ── Pass A: user's keyword — broad, no qualifier ──────────────────────────
-    _add(await scrape_linkedin(keywords, per_pass))
-
-    # ── Pass B: sector-specific digital-leadership role terms ─────────────────
-    sector_terms = [
-        "digital transformation social service",
-        "head of digital",
-        "innovation lead",
-        "technology programme",
-    ]
-    for term in sector_terms:
-        if len(combined) >= num_results * 3:   # enough already
-            break
-        _add(await scrape_linkedin(term, 8))
-
-    # ── Pass C: known Singapore non-profit & public-sector org names ──────────
-    sg_nonprofit_orgs = [
-        "NCSS", "SG Enable", "IMDA", "AI Singapore",
-        "Temasek Foundation", "Community Chest",
-        "MINDSG", "Agency for Integrated Care",
-    ]
-    for org in sg_nonprofit_orgs:
-        if len(combined) >= num_results * 4:
-            break
-        _add(await scrape_linkedin(org, 6))
-
-    print(f"  → {len(combined)} jobs (LinkedIn Non-Profit multi-pass)")
-    return combined[:num_results * 2]   # return up to 2× requested — classifier will sort
+    print(f"  → {len(combined)} jobs (LinkedIn Non-Profit org-name passes)")
+    return combined[:num_results * 2]   # return up to 2× — classifier sorts relevance
 
 
 # ============================================================================
