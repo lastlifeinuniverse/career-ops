@@ -18,6 +18,7 @@ AVAILABLE_PROFILES = {
     "kai_hiong": {"display": "Kai Hiong",       "emoji": "🏦", "path": PROFILES_DIR / "kai_hiong.yml"},
     "zy":        {"display": "Zong Yan (ZY)",   "emoji": "🎨", "path": PROFILES_DIR / "zy.yml"},
     "anson":     {"display": "Anson Cheah",     "emoji": "💼", "path": PROFILES_DIR / "anson.yml"},
+    "pei_hoon":  {"display": "Pei Hoon",        "emoji": "📋", "path": PROFILES_DIR / "pei_hoon.yml"},
 }
 
 

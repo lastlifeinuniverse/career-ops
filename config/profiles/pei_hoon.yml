@@ -1,0 +1,201 @@
+name: pei_hoon
+display_name: "Goh Pei Hoon"
+emoji: "📋"
+
+candidate:
+  full_name: "Goh Pei Hoon"
+  location: "Singapore"
+  seniority: "Experienced / Semi-retired"
+  background: >
+    Experienced administrative and operations professional with 25+ years across
+    banking, insurance, and technology sectors (UOB, Standard Chartered, Prudential,
+    Zoom Communications). Strong in records management, documentation, HR admin,
+    payroll support, and confidential information handling. Singapore Citizen,
+    available immediately, seeking part-time or low-commitment roles only.
+  domain_expertise:
+    - "HR & Payroll Administration"
+    - "Records & Documentation Management"
+    - "Operations Support"
+    - "Confidential Information Handling"
+    - "Microsoft Office (Word, Excel, Outlook, PowerPoint)"
+    - "Google Workspace"
+    - "Data Entry & Filing"
+    - "Cross-functional Coordination"
+    - "Process & Policy Compliance"
+    - "Stakeholder Communications"
+  no_experience:
+    - "Software engineering or development"
+    - "Sales or business development"
+    - "Financial advisory or wealth management"
+    - "Teaching or training delivery"
+    - "Marketing or creative roles"
+    - "Full-time executive or management roles"
+
+compensation:
+  # Part-time basis — roughly 3-4 days/week or ~20hrs/week
+  target_min: 24000     # SGD annual (~2,000/month part-time)
+  target_max: 36000     # SGD annual (~3,000/month part-time)
+  currency: "SGD"
+  note: "Part-time only. Candidate is semi-retired and prioritises flexibility over compensation."
+
+# ── Job classifier ─────────────────────────────────────────────────────────────
+classifier:
+  block:
+    # Technical / irrelevant roles
+    - "software engineer"
+    - "software developer"
+    - "frontend developer"
+    - "backend developer"
+    - "fullstack developer"
+    - "data engineer"
+    - "devops"
+    - "cybersecurity"
+    - "cloud engineer"
+    # Sales / advisory (not her background)
+    - "relationship manager"
+    - "financial advisor"
+    - "financial planner"
+    - "insurance agent"
+    - "bancassurance"
+    - "remisier"
+    - "private banker"
+    - "sales executive"
+    - "business development"
+    # Clinical / healthcare
+    - "nurse"
+    - "doctor"
+    - "physician"
+    - "therapist"
+    - "physiotherapist"
+    - "pharmacist"
+    # Education
+    - "teacher"
+    - "lecturer"
+    - "tutor"
+    - "trainer"
+    # Heavy travel / field
+    - "driver"
+    - "delivery"
+    - "field technician"
+    # Internship
+    - "internship"
+    - "intern "
+    # Design / creative
+    - "graphic designer"
+    - "ux designer"
+    - "product designer"
+    - "ui designer"
+
+  core:
+    # Part-time signals — PREFERRED
+    - "part time"
+    - "part-time"
+    - "flexi"
+    - "flexible hours"
+    - "work from home"
+    - "remote"
+    - "hybrid"
+    # HR / admin target roles
+    - "hr assistant"
+    - "hr administrator"
+    - "human resource assistant"
+    - "human resources assistant"
+    - "admin assistant"
+    - "administrative assistant"
+    - "office assistant"
+    - "office administrator"
+    - "office admin"
+    - "payroll assistant"
+    - "payroll administrator"
+    - "finance assistant"
+    - "accounts assistant"
+    - "accounting assistant"
+    - "data entry"
+    - "clerical"
+    - "secretary"
+    - "receptionist"
+    - "personal assistant"
+    - "executive assistant"
+    - "virtual assistant"
+    - "records management"
+    - "document controller"
+    - "operations assistant"
+    - "operations support"
+    - "general admin"
+
+  adjacent:
+    - "administrative"
+    - "administration"
+    - "coordinator"
+    - "operations"
+    - "support"
+    - "hr"
+    - "payroll"
+    - "accounts"
+    - "finance"
+    - "documentation"
+    - "filing"
+    - "office"
+    - "general office"
+    - "back office"
+    - "admin officer"
+    - "admin executive"
+    - "admin manager"
+
+# ── Scan defaults ──────────────────────────────────────────────────────────────
+defaults:
+  keyword: "Admin Assistant part time"
+  salary_min: 1200      # SGD monthly (part-time ~20hrs/week)
+  salary_max: 3500      # SGD monthly
+  quick_search_terms:
+    - "Admin Assistant part time"
+    - "HR Assistant part time"
+    - "Payroll Assistant part time"
+    - "Administrative Assistant"
+    - "Office Administrator part time"
+    - "Data Entry part time"
+    - "Operations Support part time"
+    - "Executive Assistant part time"
+    - "Accounts Assistant part time"
+
+# ── Company groups shown in UI ─────────────────────────────────────────────────
+default_company_groups:
+  - "🏦 Banks"
+  - "🏢 Corporate"
+
+# ── AI evaluation persona ──────────────────────────────────────────────────────
+eval_persona: |
+  CANDIDATE FACTS:
+  - Name: Goh Pei Hoon, Singapore Citizen
+  - Status: Semi-retired, seeking part-time or low-commitment roles ONLY
+  - Career span: 25+ years in administrative and operations support
+  - Background: ADMINISTRATIVE / OPERATIONS — NOT a manager, engineer, or executive
+  - She handles records, documentation, HR admin, payroll support, and office coordination
+  - Recent role: Operations Support, Zoom Communications (Feb 2022 – Nov 2025)
+  - Prior roles: Operations Support at Prudential, UOB, Standard Chartered, others (2000–2021)
+  - Education: BA Mass Communications (RMIT), Diploma Business Admin (Singapore Poly)
+  - Skills: Microsoft Office (Word, Excel, Outlook, PowerPoint), Google Workspace,
+    data entry, filing, records management, confidential information handling
+  - Languages: English
+  - Available: Immediately / short notice
+  - Target: Part-time HR admin, payroll support, admin assistant, data entry roles
+  - Target compensation: SGD 1,500–3,000/month (part-time basis)
+  - NO experience in: software engineering, sales, financial advisory, teaching,
+    senior management, or any technical/specialist roles
+
+  EVALUATION PRIORITIES FOR THIS CANDIDATE:
+  - MOST IMPORTANT: Is the role part-time, flexi, or low-commitment? Flag explicitly.
+  - Does the role match her admin/HR/ops background? She is NOT suitable for technical,
+    sales, or management roles.
+  - Compensation: Flag if below SGD 1,200/month or above SGD 3,500/month (part-time).
+  - Work arrangement: Note if WFH, hybrid, or on-site — flexibility is valued.
+  - Do NOT score down for semi-retirement or lack of recent leadership — this is deliberate.
+  - DO flag if the role appears to be disguised full-time (e.g. "part-time" but 50hrs/week).
+
+quick_screen_persona: |
+  Semi-retired administrative professional, Singapore. 25+ years in HR admin, payroll
+  support, records management, and operations across banking and tech (UOB, Standard
+  Chartered, Prudential, Zoom). Seeking part-time only — 3-4 days/week or ~20hrs/week.
+  Target: Admin Assistant, HR Administrator, Payroll Support, Data Entry, Office Coordinator.
+  SGD 1,500–3,000/month (part-time). Available immediately. NOT suitable for full-time,
+  technical, sales, management, or specialist roles.
