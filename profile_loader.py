@@ -60,13 +60,14 @@ def get_defaults(profile: dict) -> dict:
     d = profile.get("defaults", {})
     comp = profile.get("compensation", {})
     return {
-        "keyword":       d.get("keyword", "Product Manager"),
-        "salary_min":    d.get("salary_min", 8000),
-        "salary_max":    d.get("salary_max", 20000),
-        "quick_terms":   d.get("quick_search_terms", []),
-        "current_comp":  comp.get("current", 150000),
-        "target_min":    comp.get("target_min", 180000),
-        "target_max":    comp.get("target_max", 250000),
+        "keyword":          d.get("keyword", "Product Manager"),
+        "salary_min":       d.get("salary_min", 8000),
+        "salary_max":       d.get("salary_max", 20000),
+        "quick_terms":      d.get("quick_search_terms", []),
+        "employment_type":  d.get("employment_type", "Permanent"),
+        "current_comp":     comp.get("current", 150000),
+        "target_min":       comp.get("target_min", 180000),
+        "target_max":       comp.get("target_max", 250000),
     }
 
 

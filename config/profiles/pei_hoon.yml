@@ -144,19 +144,22 @@ classifier:
 
 # ── Scan defaults ──────────────────────────────────────────────────────────────
 defaults:
-  keyword: "Admin Assistant part time"
+  keyword: "Admin Assistant"
+  employment_type: "Part Time"   # MCF filter — surfaces only part-time listings
   salary_min: 1200      # SGD monthly (part-time ~20hrs/week)
   salary_max: 3500      # SGD monthly
   quick_search_terms:
-    - "Admin Assistant part time"
-    - "HR Assistant part time"
-    - "Payroll Assistant part time"
+    - "Admin Assistant"
+    - "HR Assistant"
+    - "Payroll Assistant"
     - "Administrative Assistant"
-    - "Office Administrator part time"
-    - "Data Entry part time"
-    - "Operations Support part time"
-    - "Executive Assistant part time"
-    - "Accounts Assistant part time"
+    - "Office Administrator"
+    - "Data Entry"
+    - "Operations Support"
+    - "Executive Assistant"
+    - "Accounts Assistant"
+    - "Clerical"
+    - "Receptionist"
 
 # ── Company groups shown in UI ─────────────────────────────────────────────────
 default_company_groups:

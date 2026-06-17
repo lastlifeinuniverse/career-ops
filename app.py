@@ -485,9 +485,10 @@ if page == "📋 Pipeline":
         # Load search defaults — profile overrides saved settings
         from profile_loader import get_defaults as _get_defaults
         _prof_defaults = _get_defaults(st.session_state.get("profile", {}))
-        _def_keyword  = get_setting("default_keyword",  _prof_defaults["keyword"])
-        _def_sal_min  = int(get_setting("default_sal_min", str(_prof_defaults["salary_min"])))
-        _def_sal_max  = int(get_setting("default_sal_max", str(_prof_defaults["salary_max"])))
+        _def_keyword       = get_setting("default_keyword",  _prof_defaults["keyword"])
+        _def_sal_min       = int(get_setting("default_sal_min", str(_prof_defaults["salary_min"])))
+        _def_sal_max       = int(get_setting("default_sal_max", str(_prof_defaults["salary_max"])))
+        _def_employ_type   = _prof_defaults.get("employment_type", "Permanent")
 
         predefined_terms = _prof_defaults["quick_terms"] or [
             # ── Private sector ──────────────────────────────────────────────
@@ -740,6 +741,7 @@ if page == "📋 Pipeline":
                         salary_min=salary_min,
                         salary_max=salary_max if salary_max > 0 else None,
                         min_years=min_years,
+                        employment_type=_def_employ_type,
                     )
 
                 if result["status"] == "success" and result["count"] > 0:

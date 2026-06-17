@@ -113,14 +113,14 @@ _MCF_EXP_MAP = {
 
 def _call_mcf_api(keywords: str, company: str = None,
                   salary_min: int = 0, num_results: int = 10,
-                  min_years: int = 0) -> list:
+                  min_years: int = 0, employment_type: str = "Permanent") -> list:
     """Call MCF REST API and return normalised job dicts."""
     import re as _re
     params = {
-        "search":    keywords,
-        "limit":     min(num_results, 100),
-        "sortBy":    "new_posting_date",
-        "employmentTypes": "Permanent",
+        "search":          keywords,
+        "limit":           min(num_results, 100),
+        "sortBy":          "new_posting_date",
+        "employmentTypes": employment_type,
     }
     if company:
         params["companyName"] = company
@@ -168,19 +168,22 @@ def _call_mcf_api(keywords: str, company: str = None,
 
 async def scrape_mycareersfuture(keywords: str, num_results: int = 10,
                                   salary_min: int = 0, salary_max: int = None,
-                                  min_years: int = 0) -> list:
+                                  min_years: int = 0,
+                                  employment_type: str = "Permanent") -> list:
     """MCF general search via REST API."""
     return _call_mcf_api(keywords, salary_min=salary_min,
-                         num_results=num_results, min_years=min_years)
+                         num_results=num_results, min_years=min_years,
+                         employment_type=employment_type)
 
 
 async def _scrape_mcf_company(company: str, mcf_name: str, keywords: str,
                                num_results: int, salary_min: int = 0,
-                               salary_max: int = None, min_years: int = 0) -> list:
+                               salary_max: int = None, min_years: int = 0,
+                               employment_type: str = "Permanent") -> list:
     """MCF company-filtered search via REST API."""
     jobs = _call_mcf_api(keywords, company=mcf_name,
                          salary_min=salary_min, num_results=num_results,
-                         min_years=min_years)
+                         min_years=min_years, employment_type=employment_type)
     for j in jobs:
         j["source"] = f"Direct:{company}"
     return jobs
@@ -1577,7 +1580,7 @@ async def _scrape_careers_gov(company: str, agency_name: str, keywords: str, num
 
 async def _scrape_company(company: str, keywords: str, num_results: int,
                           salary_min: int = 0, salary_max: int = None,
-                          min_years: int = 0) -> list:
+                          min_years: int = 0, employment_type: str = "Permanent") -> list:
     """Route to the right scraper based on COMPANY_CONFIG."""
     cfg = COMPANY_CONFIG.get(company, {"type": "mcf", "mcf_name": company})
     t   = cfg["type"]
@@ -1632,7 +1635,8 @@ async def _scrape_company(company: str, keywords: str, num_results: int,
     # Default: MCF with company filter
     return await _scrape_mcf_company(
         company, cfg.get("mcf_name", company), keywords, num_results,
-        salary_min=salary_min, salary_max=salary_max, min_years=min_years
+        salary_min=salary_min, salary_max=salary_max, min_years=min_years,
+        employment_type=employment_type
     )
 
 
@@ -1642,18 +1646,21 @@ async def _scrape_company(company: str, keywords: str, num_results: int,
 
 def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
                 companies: list = None, salary_min: int = 0,
-                salary_max: int = None, min_years: int = 0) -> dict:
+                salary_max: int = None, min_years: int = 0,
+                employment_type: str = "Permanent") -> dict:
     """
     Scrape jobs from selected job boards and/or company career pages.
 
     Args:
-        keywords:    Job search keywords
-        sources:     Job board names e.g. ["MyCareersFuture", "Indeed", "LinkedIn"]
-        num_results: Max total results to return
-        companies:   Company names e.g. ["DBS", "Grab"]
-        salary_min:  Minimum monthly salary SGD (passed to MCF)
-        salary_max:  Maximum monthly salary SGD (passed to MCF)
-        min_years:   Minimum years of experience (passed to MCF as position level)
+        keywords:         Job search keywords
+        sources:          Job board names e.g. ["MyCareersFuture", "LinkedIn"]
+        num_results:      Max total results to return
+        companies:        Company names e.g. ["DBS", "Grab"]
+        salary_min:       Minimum monthly salary SGD (passed to MCF)
+        salary_max:       Maximum monthly salary SGD (passed to MCF)
+        min_years:        Minimum years of experience (passed to MCF)
+        employment_type:  MCF employment type filter e.g. "Permanent", "Part Time",
+                          "Contract", "Flexi-work" (default "Permanent")
     """
     companies = companies or []
 
@@ -1675,7 +1682,8 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
             tasks.append(scrape_mycareersfuture(keywords, per_source,
                                                  salary_min=salary_min,
                                                  salary_max=salary_max,
-                                                 min_years=min_years))
+                                                 min_years=min_years,
+                                                 employment_type=employment_type))
         if "JobStreet" in sources:
             tasks.append(scrape_jobstreet(keywords, per_source))
         if "LinkedIn" in sources:
@@ -1695,7 +1703,8 @@ def scrape_jobs(keywords: str, sources: list, num_results: int = 10,
             tasks.append(_scrape_company(company, keywords, budget,
                                          salary_min=salary_min,
                                          salary_max=salary_max,
-                                         min_years=min_years))
+                                         min_years=min_years,
+                                         employment_type=employment_type))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
